@@ -1,150 +1,144 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
-
-@import url('https://fonts.googleapis.com/css2?family=Rancho&display=swap');
-
-:root {
-    --primary: #094b65;
-}
-
+/* General reset */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
 }
 
 body {
-    overflow-x: hidden;
-    background: #fff;
-    min-height: 100vh;
+    font-family: Arial, sans-serif;
 }
 
+/* Header styling */
 #header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    padding: 30px 100px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    z-index: 100;
+    padding: 10px 20px;
+    background-color: #333;
+    color: white;
 }
 
 #header .logo {
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 2em;
-    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
 }
 
 #header ul {
+    list-style: none;
     display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 #header ul li {
-    list-style: none;
     margin-left: 20px;
 }
 
 #header ul li a {
+    color: white;
     text-decoration: none;
-    padding: 6px 15px;
-    color: var(--primary);
-    border-radius: 20px;
+    font-size: 16px;
 }
 
-#header ul li a:hover,
 #header ul li a.active {
-    background: var(--primary);
-    color: #fff;
+    color: #f9c74f;
 }
 
+/* Section Styling */
 section {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-section::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 100px;
-    background: linear-gradient(to top, var(--primary), transparent);
-    z-index: 10;
-}
-
-section img {
-    position: absolute;
-    top: 0px;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    pointer-events: none;
-}
-
-section #text {
-    position: absolute;
-    color: var(--primary);
-    font-size: 10vw;
     text-align: center;
-    line-height: .55em;
-    font-family: 'Rancho', cursive;
-    transform: translatey(-50%);
+    margin-top: 50px;
+}
+
+section h2 {
+    font-size: 36px;
+    color: #333;
+    margin-bottom: 20px;
 }
 
 section #text span {
-    font-size: .20em;
-    letter-spacing: 2px;
-    font-weight: 400;
+    color: #f9c74f;
 }
 
+section img {
+    max-width: 100%;
+    height: auto;
+    margin: 10px 0;
+}
+
+/* Button styling */
 #btn {
-    text-decoration: none;
     display: inline-block;
-    padding: 8px 30px;
-    background: #fff;
-    color: var(--primary);
-    font-size: 1.2em;
-    font-weight: 500;
-    letter-spacing: 2px;
-    border-radius: 40px;
-    transform: translatey(100px);
-}
-
-.sec {
-    position: relative;
-    padding: 100px;
-    background: var(--primary);
-}
-
-.sec h2 {
-    font-size: 3.5em;
-    color: #fff;
-    margin-bottom: 10px;
-}
-
-.sec p {
-    font-size: 1em;
-    color: #fff;
-}
-
-footer {
-    position: relative;
-    padding: 0px 100px;
-    background: var(--primary);
-}
-
-footer a {
+    padding: 10px 20px;
+    background-color: #f9c74f;
+    color: white;
     text-decoration: none;
-    color: #fff;
+    border-radius: 5px;
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+#btn:hover {
+    background-color: #e9b342;
+}
+
+/* Working in progress section */
+.sec {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 24px;
+    color: #555;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    #header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #header ul {
+        flex-direction: column;
+        margin-top: 10px;
+    }
+
+    #header ul li {
+        margin: 5px 0;
+    }
+
+    section h2 {
+        font-size: 28px;
+    }
+
+    section #text span {
+        font-size: 24px;
+    }
+
+    #btn {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+
+    .sec {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    section h2 {
+        font-size: 24px;
+    }
+
+    section img {
+        max-width: 90%;
+    }
+
+    #btn {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .sec {
+        font-size: 18px;
+    }
 }
