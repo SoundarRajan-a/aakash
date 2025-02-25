@@ -443,13 +443,13 @@ section #text span {
     justify-content: center;
     width: 60px;
     height: 60px;
-    background: rgba(255, 255, 255, 0.5); /* Brighter background */
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     transition: background 0.3s ease, transform 0.3s ease;
 }
 
 .social-icon:hover {
-    background: rgba(255, 255, 255, 0.8); /* Even brighter on hover */
+    background: rgba(255, 255, 255, 0.2);
     transform: translateY(-5px);
 }
 
