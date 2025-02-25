@@ -11,11 +11,18 @@
 <body>
     <header id="header">
         <a href="#" class="logo">AAKASH SR</a>
-        <ul>
+        <!-- Menu Button -->
+        <div class="menu-toggle" id="menuToggle">
+            <span>Menu</span>
+        </div>
+        <!-- Navigation Links -->
+        <ul id="navLinks">
             <li><a href="#" id="homeBtn" class="active">Home</a></li>
             <li><a href="#" id="aboutBtn">About</a></li>
             <li><a href="#" id="destinationBtn">Destination</a></li>
             <li><a href="#" id="contactBtn">Contact</a></li>
+            <li><a href="#" id="journeyBtn">Journey</a></li>
+            <li><a href="#" id="loginBtn">Login</a></li>
         </ul>
     </header>
 
@@ -30,6 +37,41 @@
 
     <div class="sec" id="contentSection">
         <!-- Content will be dynamically added here -->
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Admin Login</h2>
+            <form id="loginForm">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upload Button (Visible after login) -->
+    <button id="uploadPhotoBtn" class="upload-btn">Upload Photo</button>
+
+    <!-- Upload Photo Section -->
+    <div id="uploadSection" class="upload-section">
+        <span class="close-upload">&times;</span>
+        <h2>Upload Photo</h2>
+        <form id="uploadForm">
+            <input type="file" id="photoUpload" accept="image/*" required>
+            <textarea id="photoDescription" placeholder="Describe the photo..." required></textarea>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+
+    <!-- Journey Section (Visible only when "Journey" is clicked) -->
+    <div class="journey-section" id="journeySection">
+        <h2>My Journey</h2>
+        <div class="container" id="publicPhotos">
+            <!-- Photos will be dynamically added here -->
+        </div>
     </div>
 
     <script src="./script.js"></script>
