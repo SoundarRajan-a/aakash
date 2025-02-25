@@ -1,53 +1,48 @@
 "use strict";
 
-// DOM Elements
-const text = document.getElementById('text');
-const bird1 = document.getElementById('bird1');
-const bird2 = document.getElementById('bird2');
-const rocks = document.getElementById('rocks');
-const forest = document.getElementById('forest');
-const water = document.getElementById('water');
-const header = document.getElementById('header');
-const contentSection = document.getElementById('contentSection');
+let text = document.getElementById('text');
+let bird1 = document.getElementById('bird1');
+let bird2 = document.getElementById('bird2');
+let rocks = document.getElementById('rocks');
+let forest = document.getElementById('forest');
+let water = document.getElementById('water');
+let header = document.getElementById('header');
+let contentSection = document.getElementById('contentSection');
 
 // Buttons
-const homeBtn = document.getElementById('homeBtn');
-const aboutBtn = document.getElementById('aboutBtn');
-const destinationBtn = document.getElementById('destinationBtn');
-const contactBtn = document.getElementById('contactBtn');
-const journeyBtn = document.getElementById('journeyBtn');
-const loginBtn = document.getElementById('loginBtn');
+let homeBtn = document.getElementById('homeBtn');
+let aboutBtn = document.getElementById('aboutBtn');
+let destinationBtn = document.getElementById('destinationBtn');
+let contactBtn = document.getElementById('contactBtn');
+let journeyBtn = document.getElementById('journeyBtn');
+let loginBtn = document.getElementById('loginBtn');
 
 // Menu Toggle
-const menuToggle = document.getElementById('menuToggle');
-const navLinks = document.getElementById('navLinks');
+let menuToggle = document.getElementById('menuToggle');
+let navLinks = document.getElementById('navLinks');
 
 // Login Modal
-const loginModal = document.getElementById('loginModal');
-const closeModal = document.querySelector('.close');
+let loginModal = document.getElementById('loginModal');
+let closeModal = document.querySelector('.close');
 
 // Upload Button and Section
-const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
-const uploadSection = document.getElementById('uploadSection');
-const closeUpload = document.querySelector('.close-upload');
-const uploadForm = document.getElementById('uploadForm');
+let uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+let uploadSection = document.getElementById('uploadSection');
+let closeUpload = document.querySelector('.close-upload');
+let uploadForm = document.getElementById('uploadForm');
 
 // Journey Section
-const journeySection = document.getElementById('journeySection');
+let journeySection = document.getElementById('journeySection');
 
 // Public Photos Section
-const publicPhotos = document.getElementById('publicPhotos');
+let publicPhotos = document.getElementById('publicPhotos');
 
 // Array to store uploaded photos
 let photos = [];
 
-// Hardcoded credentials (for local testing only)
+// Hardcoded username and password (for simplicity)
 const USERNAME = "soundarrajan";
 const PASSWORD = "soundaraakashrajan";
-
-// If you're using a server (e.g., Node.js), you can use environment variables like this:
-// const USERNAME = process.env.ADMIN_USERNAME;
-// const PASSWORD = process.env.ADMIN_PASSWORD;
 
 // Toggle Menu on Click
 menuToggle.addEventListener('click', function () {
@@ -68,8 +63,8 @@ closeModal.addEventListener('click', function () {
 // Login Form Submission
 document.getElementById('loginForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    let username = document.getElementById('username').value;
+    let password = document.getElementById('password').value;
 
     // Validate username and password
     if (username === USERNAME && password === PASSWORD) {
@@ -94,11 +89,11 @@ closeUpload.addEventListener('click', function () {
 // Upload Form Submission
 uploadForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    const file = document.getElementById('photoUpload').files[0];
-    const description = document.getElementById('photoDescription').value;
+    let file = document.getElementById('photoUpload').files[0];
+    let description = document.getElementById('photoDescription').value;
 
     if (file && description) {
-        const reader = new FileReader();
+        let reader = new FileReader();
         reader.onload = function (e) {
             // Add the uploaded photo to the array
             photos.push({ src: e.target.result, description: description });
@@ -140,14 +135,14 @@ function deletePhoto(index) {
 // Scroll effect
 window.addEventListener('scroll', function () {
     let value = window.scrollY;
-    text.style.top = 50 + value * -0.1 + '%';
+    text.style.top = 50 + value * -.1 + '%';
     bird2.style.top = value * -1.5 + 'px';
     bird2.style.left = value * 2 + 'px';
     bird1.style.top = value * -1.5 + 'px';
     bird1.style.left = value * -5 + 'px';
-    rocks.style.top = value * -0.12 + 'px';
-    forest.style.top = value * 0.25 + 'px';
-    header.style.top = value * 0.5 + 'px';
+    rocks.style.top = value * -.12 + 'px';
+    forest.style.top = value * .25 + 'px';
+    header.style.top = value * .5 + 'px';
 });
 
 // Function to scroll to the content section
