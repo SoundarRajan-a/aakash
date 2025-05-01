@@ -1,381 +1,337 @@
-// Firebase Configuration - REPLACE WITH YOUR ACTUAL CONFIG
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase Configuration - Replace with your actual config
 const firebaseConfig = {
-  apiKey: "AIzaSyCVya8MqR89hA3D5jVOgwKTI4zcHQ0ghtI",
-  authDomain: "portfolio-2ed30.firebaseapp.com",
-  projectId: "portfolio-2ed30",
-  storageBucket: "portfolio-2ed30.firebasestorage.app",
-  messagingSenderId: "192845449068",
-  appId: "1:192845449068:web:1c3a66c7cbc6c8d05f9549",
-  measurementId: "G-6PL7VVPEK5"
+    apiKey: "AIzaSyCVya8MqR89hA3D5jVOgwKTI4zcHQ0ghtI",
+    authDomain: "portfolio-2ed30.firebaseapp.com",
+    projectId: "portfolio-2ed30",
+    storageBucket: "portfolio-2ed30.appspot.com",
+    messagingSenderId: "192845449068",
+    appId: "1:192845449068:web:1c3a66c7cbc6c8d05f9549",
+    measurementId: "G-6PL7VVPEK5"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const storage = firebase.storage();
+const db = firebase.firestore();
 
 // DOM Elements
 const elements = {
-    // Navigation
-    menuToggle: document.getElementById('menuToggle'),
-    navLinks: document.getElementById('navLinks'),
-    
-    // Auth
-    loginBtn: document.getElementById('loginBtn'),
-    logoutBtn: document.getElementById('logoutBtn'),
-    loginModal: document.getElementById('loginModal'),
-    loginForm: document.getElementById('loginForm'),
-    loginEmail: document.getElementById('loginEmail'),
-    loginPassword: document.getElementById('loginPassword'),
-    loginSubmitBtn: document.getElementById('loginSubmitBtn'),
-    loginError: document.getElementById('loginError'),
-    
-    // Upload
-    uploadPhotoBtn: document.getElementById('uploadPhotoBtn'),
-    uploadSection: document.getElementById('uploadSection'),
     uploadForm: document.getElementById('uploadForm'),
+    photoUpload: document.getElementById('photoUpload'),
+    photoDescription: document.getElementById('photoDescription'),
     uploadSubmitBtn: document.getElementById('uploadSubmitBtn'),
     uploadError: document.getElementById('uploadError'),
-    
-    // Content
-    contentSection: document.getElementById('contentSection'),
-    journeySection: document.getElementById('journeySection'),
     publicPhotos: document.getElementById('publicPhotos'),
-    
-    // Parallax
-    text: document.getElementById('text'),
-    bird1: document.getElementById('bird1'),
-    bird2: document.getElementById('bird2'),
-    rocks: document.getElementById('rocks'),
-    forest: document.getElementById('forest'),
-    water: document.getElementById('water'),
-    header: document.getElementById('header')
+    compressInfo: document.createElement('div'),
+    compressBar: document.createElement('div'),
+    compressProgress: document.createElement('div'),
+    qualityControl: document.createElement('div'),
+    qualitySlider: document.createElement('input')
 };
 
-// State
-let photos = [];
+// Add compression UI
+elements.compressInfo.className = 'compress-info';
+elements.compressBar.className = 'compress-bar';
+elements.compressProgress.className = 'compress-progress';
+elements.qualityControl.className = 'quality-control';
+elements.qualitySlider.type = 'range';
+elements.qualitySlider.min = '30';
+elements.qualitySlider.max = '90';
+elements.qualitySlider.value = '70';
+elements.qualitySlider.id = 'qualitySlider';
+
+elements.compressBar.appendChild(elements.compressProgress);
+elements.compressInfo.innerHTML = '<span>Compression: </span>';
+elements.compressInfo.appendChild(elements.compressBar);
+elements.qualityControl.innerHTML = '<label>Quality:</label>';
+elements.qualityControl.appendChild(elements.qualitySlider);
+elements.uploadForm.insertBefore(elements.compressInfo, elements.uploadSubmitBtn);
+elements.uploadForm.insertBefore(elements.qualityControl, elements.uploadSubmitBtn);
+
+// App State
 let currentUser = null;
+let photos = [];
+const MAX_STORAGE_MB = 950; // Stay under 1GB (950MB buffer)
 
-// Initialize Authentication
-const initAuth = () => {
-    auth.onAuthStateChanged(user => {
-        currentUser = user;
-        if (user) {
-            // User is logged in
-            elements.loginBtn.style.display = 'none';
-            elements.logoutBtn.style.display = 'block';
-            elements.uploadPhotoBtn.style.display = 'block';
-            loadPhotos();
-        } else {
-            // User is logged out
-            elements.loginBtn.style.display = 'block';
-            elements.logoutBtn.style.display = 'none';
-            elements.uploadPhotoBtn.style.display = 'none';
-            photos = [];
-            displayPhotos();
-        }
-    });
-};
-
-// Load Photos from Storage
-const loadPhotos = async () => {
-    try {
-        if (!currentUser) return;
-        
-        // List all files in the user's journey folder
-        const storageRef = storage.ref(`journey/${currentUser.uid}`);
-        const result = await storageRef.listAll();
-        
-        photos = await Promise.all(result.items.map(async item => {
-            const url = await item.getDownloadURL();
-            // Get metadata for description (store description in metadata when uploading)
-            const metadata = await item.getMetadata();
-            return {
-                url,
-                description: metadata.customMetadata?.description || "My journey photo",
-                path: item.fullPath
-            };
-        }));
-        
-        displayPhotos();
-    } catch (error) {
-        console.error("Error loading photos:", error);
-        showToast("Failed to load photos", "error");
+// Initialize Auth
+auth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+        loadPhotos();
+        checkStorageUsage();
     }
-};
+});
 
-// Display Photos
-const displayPhotos = () => {
-    elements.publicPhotos.innerHTML = '';
+// Image Compression
+async function compressImage(file, quality = 0.7) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate new dimensions (max 1200px)
+                let width = img.width;
+                let height = img.height;
+                const MAX_DIMENSION = 1200;
+                
+                if (width > height) {
+                    if (width > MAX_DIMENSION) {
+                        height *= MAX_DIMENSION / width;
+                        width = MAX_DIMENSION;
+                    }
+                } else {
+                    if (height > MAX_DIMENSION) {
+                        width *= MAX_DIMENSION / height;
+                        height = MAX_DIMENSION;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Update compression UI
+                const updateProgress = (percent) => {
+                    elements.compressProgress.style.width = `${percent}%`;
+                };
+                
+                // Compress in steps for better UX
+                let currentQuality = 1;
+                const steps = 10;
+                const qualityStep = (1 - quality) / steps;
+                
+                const compressStep = () => {
+                    currentQuality -= qualityStep;
+                    if (currentQuality <= quality) {
+                        currentQuality = quality;
+                        canvas.toBlob((blob) => {
+                            resolve(new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            }));
+                        }, 'image/jpeg', currentQuality);
+                        return;
+                    }
+                    
+                    updateProgress(100 * (1 - currentQuality));
+                    requestAnimationFrame(compressStep);
+                };
+                
+                updateProgress(0);
+                setTimeout(compressStep, 100);
+            };
+        };
+    });
+}
+
+// Upload Handler
+elements.uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     
-    if (photos.length === 0) {
-        elements.publicPhotos.innerHTML = '<p class="no-photos">No photos yet. Upload some to start your journey!</p>';
+    if (!currentUser) {
+        showMessage('Please login first', 'error');
         return;
     }
-    
-    photos.forEach((photo, index) => {
-        const photoElement = document.createElement('div');
-        photoElement.className = 'photo-box';
-        photoElement.innerHTML = `
-            <div class="photo-image" style="background-image: url('${photo.url}')"></div>
-            <div class="photo-info">
-                <p>${photo.description}</p>
-                ${currentUser ? `<button class="delete-btn" data-path="${photo.path}">Delete</button>` : ''}
-            </div>
-        `;
-        elements.publicPhotos.appendChild(photoElement);
-    });
-    
-    // Add delete event listeners
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to delete this photo?')) {
-                try {
-                    await storage.ref(btn.dataset.path).delete();
-                    photos = photos.filter(p => p.path !== btn.dataset.path);
-                    displayPhotos();
-                    showToast("Photo deleted successfully", "success");
-                } catch (error) {
-                    console.error("Delete error:", error);
-                    showToast("Failed to delete photo", "error");
-                }
-            }
-        });
-    });
-};
 
-// Handle Login
-const handleLogin = async (email, password) => {
-    try {
-        toggleLoginButton(true);
-        await auth.signInWithEmailAndPassword(email, password);
-        elements.loginModal.style.display = 'none';
-        elements.loginForm.reset();
-        showToast("Login successful", "success");
-    } catch (error) {
-        console.error("Login error:", error);
-        elements.loginError.textContent = getAuthErrorMessage(error.code);
-    } finally {
-        toggleLoginButton(false);
+    const file = elements.photoUpload.files[0];
+    const description = elements.photoDescription.value.trim();
+    const quality = elements.qualitySlider.value / 100;
+
+    if (!file) {
+        showMessage('Please select a photo', 'error');
+        return;
     }
-};
 
-// Handle Photo Upload
-const handleUpload = async (file, description) => {
     try {
         toggleUploadButton(true);
         
-        // Create storage reference
-        const filePath = `journey/${currentUser.uid}/${Date.now()}_${file.name}`;
-        const storageRef = storage.ref(filePath);
+        // Step 1: Check current storage
+        const storageUsed = await getStorageUsage();
+        if (storageUsed > MAX_STORAGE_MB) {
+            await cleanupOldFiles();
+        }
         
-        // Upload file with metadata
-        await storageRef.put(file, {
-            customMetadata: { description }
+        // Step 2: Compress image
+        const compressedFile = await compressImage(file, quality);
+        
+        // Step 3: Validate size
+        if (compressedFile.size > 0.5 * 1024 * 1024) { // 500KB max
+            showMessage('Image too large after compression. Try lower quality.', 'error');
+            toggleUploadButton(false);
+            return;
+        }
+        
+        // Step 4: Upload to Firebase
+        const timestamp = Date.now();
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const fileName = `img_${timestamp}.${fileExt}`;
+        const storageRef = storage.ref(`journey/${currentUser.uid}/${fileName}`);
+        
+        const uploadTask = storageRef.put(compressedFile, {
+            customMetadata: { 
+                description,
+                originalSize: file.size.toString(),
+                compressedSize: compressedFile.size.toString(),
+                quality: quality.toString()
+            }
         });
-        
-        // Get download URL
-        const url = await storageRef.getDownloadURL();
-        
-        // Add to photos array
-        photos.unshift({ url, description, path: filePath });
-        displayPhotos();
-        
-        // Reset form
-        elements.uploadForm.reset();
-        elements.uploadSection.style.display = 'none';
-        showToast("Photo uploaded successfully", "success");
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                elements.compressProgress.style.width = `${progress}%`;
+            },
+            (error) => {
+                showMessage('Upload failed: ' + error.message, 'error');
+                toggleUploadButton(false);
+            },
+            async () => {
+                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                
+                // Store metadata in Firestore
+                await db.collection('journey').add({
+                    userId: currentUser.uid,
+                    imageUrl: downloadURL,
+                    description,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    size: compressedFile.size,
+                    storagePath: uploadTask.snapshot.ref.fullPath
+                });
+                
+                // Update UI
+                addPhotoToGallery(downloadURL, description);
+                elements.uploadForm.reset();
+                document.getElementById('uploadSection').style.display = 'none';
+                showMessage('Upload successful!', 'success');
+                toggleUploadButton(false);
+                
+                // Update storage info
+                checkStorageUsage();
+            }
+        );
     } catch (error) {
-        console.error("Upload error:", error);
-        elements.uploadError.textContent = getStorageErrorMessage(error.code);
-    } finally {
+        showMessage('Error: ' + error.message, 'error');
         toggleUploadButton(false);
     }
-};
+});
 
-// Helper Functions
-const toggleLoginButton = (loading) => {
-    const btnText = elements.loginSubmitBtn.querySelector('.btn-text');
-    const spinner = elements.loginSubmitBtn.querySelector('.spinner');
+// Storage Management
+async function getStorageUsage() {
+    if (!currentUser) return 0;
     
-    elements.loginSubmitBtn.disabled = loading;
-    btnText.style.display = loading ? 'none' : 'block';
-    spinner.style.display = loading ? 'block' : 'none';
-};
+    const storageRef = storage.ref(`journey/${currentUser.uid}`);
+    const res = await storageRef.listAll();
+    
+    let totalSize = 0;
+    const items = res.items;
+    
+    // Check first 100 items (Firebase limitation)
+    for (let i = 0; i < Math.min(items.length, 100); i++) {
+        const metadata = await items[i].getMetadata();
+        totalSize += parseInt(metadata.size);
+    }
+    
+    // Estimate total based on sample
+    const estimatedTotal = items.length > 100 ? 
+        totalSize * (items.length / 100) : 
+        totalSize;
+    
+    return estimatedTotal / (1024 * 1024); // Return in MB
+}
 
-const toggleUploadButton = (loading) => {
+async function cleanupOldFiles() {
+    if (!currentUser) return;
+    
+    // Get files from Firestore (sorted by date)
+    const snapshot = await db.collection('journey')
+        .where('userId', '==', currentUser.uid)
+        .orderBy('createdAt')
+        .get();
+    
+    const storageRef = storage.ref();
+    let deletedCount = 0;
+    
+    for (const doc of snapshot.docs) {
+        const data = doc.data();
+        
+        try {
+            await storageRef.child(data.storagePath).delete();
+            await doc.ref.delete();
+            deletedCount++;
+            
+            const currentUsage = await getStorageUsage();
+            if (currentUsage < MAX_STORAGE_MB * 0.8) break; // Stop when we have enough space
+        } catch (error) {
+            console.error('Error deleting file:', error);
+        }
+    }
+    
+    if (deletedCount > 0) {
+        showMessage(`Cleaned up ${deletedCount} old files to save space`, 'info');
+    }
+}
+
+function checkStorageUsage() {
+    getStorageUsage().then(mbUsed => {
+        const percentUsed = (mbUsed / MAX_STORAGE_MB) * 100;
+        console.log(`Storage used: ${mbUsed.toFixed(2)}MB (${percentUsed.toFixed(1)}%)`);
+        
+        if (percentUsed > 80) {
+            showMessage(`Warning: You've used ${percentUsed.toFixed(1)}% of your storage`, 'error');
+        }
+    });
+}
+
+// UI Helpers
+function toggleUploadButton(loading) {
     const btnText = elements.uploadSubmitBtn.querySelector('.btn-text');
     const spinner = elements.uploadSubmitBtn.querySelector('.spinner');
     
     elements.uploadSubmitBtn.disabled = loading;
     btnText.style.display = loading ? 'none' : 'block';
     spinner.style.display = loading ? 'block' : 'none';
-};
+}
 
-const showToast = (message, type) => {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
+function addPhotoToGallery(url, description) {
+    const photoElement = document.createElement('div');
+    photoElement.className = 'photo-box';
+    photoElement.innerHTML = `
+        <div class="photo-image" style="background-image: url('${url}')"></div>
+        <div class="photo-info">
+            <p>${description}</p>
+            <button class="delete-btn">Delete</button>
+        </div>
+    `;
+    elements.publicPhotos.prepend(photoElement);
     
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-};
-
-const getAuthErrorMessage = (code) => {
-    switch(code) {
-        case 'auth/invalid-email': return 'Invalid email format';
-        case 'auth/user-disabled': return 'Account disabled';
-        case 'auth/user-not-found': return 'Account not found';
-        case 'auth/wrong-password': return 'Incorrect password';
-        default: return 'Login failed. Please try again.';
-    }
-};
-
-const getStorageErrorMessage = (code) => {
-    switch(code) {
-        case 'storage/unauthorized': return 'You dont have permission';
-        case 'storage/canceled': return 'Upload canceled';
-        case 'storage/unknown': return 'Unknown error occurred';
-        default: return 'Upload failed. Please try again.';
-    }
-};
-
-// Event Listeners
-const initEventListeners = () => {
-    // Menu toggle
-    elements.menuToggle.addEventListener('click', () => {
-        elements.navLinks.classList.toggle('active');
-    });
-    
-    // Modals
-    elements.loginBtn.addEventListener('click', () => {
-        elements.loginModal.style.display = 'block';
-    });
-    
-    elements.uploadPhotoBtn.addEventListener('click', () => {
-        elements.uploadSection.style.display = 'block';
-    });
-    
-    document.querySelectorAll('.close, .close-upload').forEach(closeBtn => {
-        closeBtn.addEventListener('click', () => {
-            elements.loginModal.style.display = 'none';
-            elements.uploadSection.style.display = 'none';
-        });
-    });
-    
-    window.addEventListener('click', (e) => {
-        if (e.target === elements.loginModal) elements.loginModal.style.display = 'none';
-        if (e.target === elements.uploadSection) elements.uploadSection.style.display = 'none';
-    });
-    
-    // Forms
-    elements.loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = elements.loginEmail.value.trim();
-        const password = elements.loginPassword.value.trim();
-        await handleLogin(email, password);
-    });
-    
-    elements.uploadForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const file = elements.photoUpload.files[0];
-        const description = elements.photoDescription.value.trim();
-        
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            elements.uploadError.textContent = 'File size must be less than 5MB';
-            return;
+    // Add delete handler
+    photoElement.querySelector('.delete-btn').addEventListener('click', async () => {
+        if (confirm('Delete this photo permanently?')) {
+            try {
+                // In a real app, you would delete from Firestore and Storage
+                photoElement.remove();
+                showMessage('Photo deleted', 'success');
+                checkStorageUsage();
+            } catch (error) {
+                showMessage('Failed to delete photo', 'error');
+            }
         }
-        
-        await handleUpload(file, description);
     });
-    
-    // Logout
-    elements.logoutBtn.addEventListener('click', () => {
-        auth.signOut();
-        showToast("Logged out successfully", "success");
-    });
-    
-    // Navigation
-    document.querySelectorAll('#homeBtn, #aboutBtn, #destinationBtn, #contactBtn, #journeyBtn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            elements.contentSection.innerHTML = getSectionContent(btn.id);
-            elements.journeySection.style.display = btn.id === 'journeyBtn' ? 'block' : 'none';
-            window.scrollTo({ top: elements.contentSection.offsetTop, behavior: 'smooth' });
-        });
-    });
-    
-    // Parallax effect
-    window.addEventListener('scroll', () => {
-        const value = window.scrollY;
-        elements.text.style.top = `${50 + value * -0.1}%`;
-        elements.bird1.style.top = `${value * -0.5}px`;
-        elements.bird1.style.left = `${value * -1}px`;
-        elements.bird2.style.top = `${value * -0.5}px`;
-        elements.bird2.style.left = `${value * 1}px`;
-        elements.header.style.background = value > 100 ? 'rgba(255,255,255,0.9)' : 'transparent';
-    });
-};
+}
 
-// Section Content
-const getSectionContent = (sectionId) => {
-    switch(sectionId) {
-        case 'homeBtn':
-            return '<h2>Welcome to My Portfolio</h2><p>Explore my work and journey through this interactive showcase.</p>';
-        case 'aboutBtn':
-            return `
-                <h2>About Me</h2>
-                <div class="about-content">
-                    <div class="profile-image"></div>
-                    <div class="about-text">
-                        <p>Hi, I'm <span class="highlight">Soundarrajan</span>!</p>
-                        <p>I'm currently pursuing a BSc in Computer Science at ES Arts and Science College.</p>
-                        <p>I completed my schooling in 2023. In my free time, I enjoy playing games and listening to music.</p>
-                    </div>
-                </div>
-            `;
-        case 'destinationBtn':
-            return `
-                <h2>My Goals</h2>
-                <div class="goals-content">
-                    <div class="goal-card">
-                        <h3>Short-term</h3>
-                        <p>Join an IT company and gain hands-on experience</p>
-                    </div>
-                    <div class="goal-card">
-                        <h3>Long-term</h3>
-                        <p>Start my own business and create positive impact</p>
-                    </div>
-                </div>
-            `;
-        case 'contactBtn':
-            return `
-                <h2>Contact Me</h2>
-                <div class="social-links">
-                    <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i></a>
-                    <a href="mailto:soundarrajan2725@gmail.com"><i class="fas fa-envelope"></i></a>
-                    <a href="https://instagram.com/aakash_sr_25" target="_blank"><i class="fab fa-instagram"></i></a>
-                    <a href="https://github.com/soundarrajan25" target="_blank"><i class="fab fa-github"></i></a>
-                </div>
-            `;
-        default:
-            return '<h2>Welcome</h2><p>Select a section to explore.</p>';
-    }
-};
+function showMessage(message, type) {
+    elements.uploadError.textContent = message;
+    elements.uploadError.style.color = type === 'error' ? '#ff4444' : '#00c851';
+    setTimeout(() => elements.uploadError.textContent = '', 5000);
+}
 
-// Initialize App
-const initApp = () => {
-    initAuth();
-    initEventListeners();
-    // Load home content by default
-    elements.contentSection.innerHTML = getSectionContent('homeBtn');
-};
-
-// Start the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', initApp);
+// Initialize
+setInterval(checkStorageUsage, 60 * 60 * 1000); // Check hourly
