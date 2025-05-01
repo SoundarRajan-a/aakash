@@ -38,7 +38,8 @@
     </section>
 
     <div class="content-section" id="contentSection">
-        <!-- Dynamic content will load here -->
+        <h2>Welcome to My Portfolio</h2>
+        <p>Explore my work and journey through this interactive showcase.</p>
     </div>
 
     <!-- Login Modal -->
@@ -46,6 +47,7 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Admin Login</h2>
+            <div id="loginStatus"></div>
             <form id="loginForm">
                 <div class="form-group">
                     <input type="email" id="loginEmail" placeholder="Your Email" required>
@@ -55,9 +57,8 @@
                 </div>
                 <button type="submit" id="loginSubmitBtn">
                     <span class="btn-text">Login</span>
-                    <span class="spinner" style="display:none;"></span>
+                    <span class="spinner"></span>
                 </button>
-                <p id="loginError" class="error-message"></p>
             </form>
         </div>
     </div>
@@ -72,20 +73,28 @@
         <div class="modal-content">
             <span class="close-upload">&times;</span>
             <h2>Upload to Journey</h2>
+            <div id="uploadStatus"></div>
             <form id="uploadForm">
                 <div class="form-group">
-                    <label for="photoUpload">Select Image (Max 5MB):</label>
+                    <label for="photoUpload">Select Image (Max 2MB):</label>
                     <input type="file" id="photoUpload" accept="image/*" required>
+                    <div id="fileInfo"></div>
                 </div>
                 <div class="form-group">
                     <label for="photoDescription">Description:</label>
                     <textarea id="photoDescription" placeholder="Describe this moment..." required></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Quality: <span id="qualityValue">70</span>%</label>
+                    <input type="range" id="qualitySlider" min="30" max="90" value="70">
+                </div>
                 <button type="submit" id="uploadSubmitBtn">
                     <span class="btn-text">Upload</span>
-                    <span class="spinner" style="display:none;"></span>
+                    <span class="spinner"></span>
                 </button>
-                <p id="uploadError" class="error-message"></p>
+                <div id="uploadProgress">
+                    <div id="progressBar"></div>
+                </div>
             </form>
         </div>
     </div>
@@ -94,7 +103,7 @@
     <div class="journey-section" id="journeySection" style="display:none;">
         <h2>My Journey</h2>
         <div class="photos-container" id="publicPhotos">
-            <!-- Photos will load here -->
+            <p class="no-photos">No photos yet. Upload some to start your journey!</p>
         </div>
     </div>
 
