@@ -1,8 +1,4 @@
-"use strict";
-
-// =====================
-// Firebase Configuration
-// =====================
+// Firebase Configuration - REPLACE WITH YOUR ACTUAL CONFIG
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyCVya8MqR89hA3D5jVOgwKTI4zcHQ0ghtI",
@@ -19,69 +15,60 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const storage = firebase.storage();
 
-// =====================
 // DOM Elements
-// =====================
 const elements = {
-    // Parallax elements
+    // Navigation
+    menuToggle: document.getElementById('menuToggle'),
+    navLinks: document.getElementById('navLinks'),
+    
+    // Auth
+    loginBtn: document.getElementById('loginBtn'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    loginModal: document.getElementById('loginModal'),
+    loginForm: document.getElementById('loginForm'),
+    loginEmail: document.getElementById('loginEmail'),
+    loginPassword: document.getElementById('loginPassword'),
+    loginSubmitBtn: document.getElementById('loginSubmitBtn'),
+    loginError: document.getElementById('loginError'),
+    
+    // Upload
+    uploadPhotoBtn: document.getElementById('uploadPhotoBtn'),
+    uploadSection: document.getElementById('uploadSection'),
+    uploadForm: document.getElementById('uploadForm'),
+    uploadSubmitBtn: document.getElementById('uploadSubmitBtn'),
+    uploadError: document.getElementById('uploadError'),
+    
+    // Content
+    contentSection: document.getElementById('contentSection'),
+    journeySection: document.getElementById('journeySection'),
+    publicPhotos: document.getElementById('publicPhotos'),
+    
+    // Parallax
     text: document.getElementById('text'),
     bird1: document.getElementById('bird1'),
     bird2: document.getElementById('bird2'),
     rocks: document.getElementById('rocks'),
     forest: document.getElementById('forest'),
     water: document.getElementById('water'),
-    header: document.getElementById('header'),
-    
-    // Content sections
-    contentSection: document.getElementById('contentSection'),
-    journeySection: document.getElementById('journeySection'),
-    publicPhotos: document.getElementById('publicPhotos'),
-    
-    // Navigation
-    menuToggle: document.getElementById('menuToggle'),
-    navLinks: document.getElementById('navLinks'),
-    
-    // Buttons
-    homeBtn: document.getElementById('homeBtn'),
-    aboutBtn: document.getElementById('aboutBtn'),
-    destinationBtn: document.getElementById('destinationBtn'),
-    contactBtn: document.getElementById('contactBtn'),
-    journeyBtn: document.getElementById('journeyBtn'),
-    loginBtn: document.getElementById('loginBtn'),
-    logoutBtn: document.getElementById('logoutBtn'),
-    uploadPhotoBtn: document.getElementById('uploadPhotoBtn'),
-    
-    // Modals
-    loginModal: document.getElementById('loginModal'),
-    closeModal: document.querySelector('.close'),
-    uploadSection: document.getElementById('uploadSection'),
-    closeUpload: document.querySelector('.close-upload'),
-    
-    // Forms
-    loginForm: document.getElementById('loginForm'),
-    uploadForm: document.getElementById('uploadForm'),
-    uploadSubmitBtn: document.getElementById('uploadSubmitBtn')
+    header: document.getElementById('header')
 };
 
-// =====================
-// State Management
-// =====================
+// State
 let photos = [];
-let isLoading = false;
+let currentUser = null;
 
-// =====================
-// Authentication
-// =====================
+// Initialize Authentication
 const initAuth = () => {
-    auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged(user => {
+        currentUser = user;
         if (user) {
-            // User is signed in
+            // User is logged in
             elements.loginBtn.style.display = 'none';
             elements.logoutBtn.style.display = 'block';
             elements.uploadPhotoBtn.style.display = 'block';
             loadPhotos();
         } else {
-            // User is signed out
+            // User is logged out
             elements.loginBtn.style.display = 'block';
             elements.logoutBtn.style.display = 'none';
             elements.uploadPhotoBtn.style.display = 'none';
@@ -91,319 +78,304 @@ const initAuth = () => {
     });
 };
 
-// =====================
-// Photo Management
-// =====================
+// Load Photos from Storage
 const loadPhotos = async () => {
     try {
-        const user = auth.currentUser;
-        if (!user) return;
+        if (!currentUser) return;
         
-        // In a real app, you would fetch from Firestore or Storage metadata
-        // For now, we'll maintain client-side array
+        // List all files in the user's journey folder
+        const storageRef = storage.ref(`journey/${currentUser.uid}`);
+        const result = await storageRef.listAll();
+        
+        photos = await Promise.all(result.items.map(async item => {
+            const url = await item.getDownloadURL();
+            // Get metadata for description (store description in metadata when uploading)
+            const metadata = await item.getMetadata();
+            return {
+                url,
+                description: metadata.customMetadata?.description || "My journey photo",
+                path: item.fullPath
+            };
+        }));
+        
         displayPhotos();
     } catch (error) {
         console.error("Error loading photos:", error);
-        alert("Failed to load photos. Please refresh the page.");
+        showToast("Failed to load photos", "error");
     }
 };
 
+// Display Photos
 const displayPhotos = () => {
-    elements.publicPhotos.innerHTML = photos.length > 0 ? '' : '<p class="no-photos">No photos yet. Upload some to start your journey!</p>';
+    elements.publicPhotos.innerHTML = '';
+    
+    if (photos.length === 0) {
+        elements.publicPhotos.innerHTML = '<p class="no-photos">No photos yet. Upload some to start your journey!</p>';
+        return;
+    }
     
     photos.forEach((photo, index) => {
         const photoElement = document.createElement('div');
-        photoElement.className = 'box';
-        photoElement.style.backgroundImage = `url('${photo.src}')`;
+        photoElement.className = 'photo-box';
         photoElement.innerHTML = `
-            <div class="content">
+            <div class="photo-image" style="background-image: url('${photo.url}')"></div>
+            <div class="photo-info">
                 <p>${photo.description}</p>
-                <button class="delete-btn" data-index="${index}">Delete</button>
+                ${currentUser ? `<button class="delete-btn" data-path="${photo.path}">Delete</button>` : ''}
             </div>
         `;
         elements.publicPhotos.appendChild(photoElement);
     });
     
-    // Add event listeners to delete buttons
+    // Add delete event listeners
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deletePhoto(parseInt(btn.dataset.index));
+        btn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this photo?')) {
+                try {
+                    await storage.ref(btn.dataset.path).delete();
+                    photos = photos.filter(p => p.path !== btn.dataset.path);
+                    displayPhotos();
+                    showToast("Photo deleted successfully", "success");
+                } catch (error) {
+                    console.error("Delete error:", error);
+                    showToast("Failed to delete photo", "error");
+                }
+            }
         });
     });
 };
 
-const deletePhoto = async (index) => {
-    if (!auth.currentUser || !confirm('Are you sure you want to delete this photo?')) return;
-    
+// Handle Login
+const handleLogin = async (email, password) => {
     try {
-        const photoUrl = photos[index].src;
-        const photoRef = storage.refFromURL(photoUrl);
-        
-        await photoRef.delete();
-        photos.splice(index, 1);
-        displayPhotos();
-        showToast('Photo deleted successfully', 'success');
+        toggleLoginButton(true);
+        await auth.signInWithEmailAndPassword(email, password);
+        elements.loginModal.style.display = 'none';
+        elements.loginForm.reset();
+        showToast("Login successful", "success");
     } catch (error) {
-        console.error("Delete error:", error);
-        showToast('Failed to delete photo', 'error');
+        console.error("Login error:", error);
+        elements.loginError.textContent = getAuthErrorMessage(error.code);
+    } finally {
+        toggleLoginButton(false);
     }
 };
 
-// =====================
-// Form Handlers
-// =====================
-const initLoginForm = () => {
-    elements.loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = elements.loginForm.email.value;
-        const password = elements.loginForm.password.value;
+// Handle Photo Upload
+const handleUpload = async (file, description) => {
+    try {
+        toggleUploadButton(true);
         
-        try {
-            await auth.signInWithEmailAndPassword(email, password);
-            elements.loginModal.style.display = 'none';
-            showToast('Login successful!', 'success');
-        } catch (error) {
-            console.error("Login error:", error);
-            showToast(error.message, 'error');
-        }
-    });
+        // Create storage reference
+        const filePath = `journey/${currentUser.uid}/${Date.now()}_${file.name}`;
+        const storageRef = storage.ref(filePath);
+        
+        // Upload file with metadata
+        await storageRef.put(file, {
+            customMetadata: { description }
+        });
+        
+        // Get download URL
+        const url = await storageRef.getDownloadURL();
+        
+        // Add to photos array
+        photos.unshift({ url, description, path: filePath });
+        displayPhotos();
+        
+        // Reset form
+        elements.uploadForm.reset();
+        elements.uploadSection.style.display = 'none';
+        showToast("Photo uploaded successfully", "success");
+    } catch (error) {
+        console.error("Upload error:", error);
+        elements.uploadError.textContent = getStorageErrorMessage(error.code);
+    } finally {
+        toggleUploadButton(false);
+    }
 };
 
-const initUploadForm = () => {
-    elements.uploadForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (isLoading) return;
-        
-        const file = elements.uploadForm.photoUpload.files[0];
-        const description = elements.uploadForm.photoDescription.value;
-        
-        if (!file || !description) {
-            showToast('Please select a photo and add a description', 'error');
-            return;
-        }
-        
-        const user = auth.currentUser;
-        if (!user) {
-            showToast('Please login first', 'error');
-            return;
-        }
-        
-        try {
-            isLoading = true;
-            toggleUploadButton(true);
-            
-            // Create storage reference
-            const storageRef = storage.ref(`journey/${user.uid}/${Date.now()}_${file.name}`);
-            
-            // Upload file
-            await storageRef.put(file);
-            const photoUrl = await storageRef.getDownloadURL();
-            
-            // Add to photos array
-            photos.unshift({ src: photoUrl, description });
-            
-            // Update UI
-            displayPhotos();
-            elements.uploadForm.reset();
-            elements.uploadSection.style.display = 'none';
-            showToast('Photo uploaded successfully!', 'success');
-        } catch (error) {
-            console.error("Upload error:", error);
-            showToast('Upload failed: ' + error.message, 'error');
-        } finally {
-            isLoading = false;
-            toggleUploadButton(false);
-        }
-    });
+// Helper Functions
+const toggleLoginButton = (loading) => {
+    const btnText = elements.loginSubmitBtn.querySelector('.btn-text');
+    const spinner = elements.loginSubmitBtn.querySelector('.spinner');
+    
+    elements.loginSubmitBtn.disabled = loading;
+    btnText.style.display = loading ? 'none' : 'block';
+    spinner.style.display = loading ? 'block' : 'none';
 };
 
 const toggleUploadButton = (loading) => {
     const btnText = elements.uploadSubmitBtn.querySelector('.btn-text');
     const spinner = elements.uploadSubmitBtn.querySelector('.spinner');
     
-    if (loading) {
-        elements.uploadSubmitBtn.disabled = true;
-        btnText.style.display = 'none';
-        spinner.style.display = 'block';
-    } else {
-        elements.uploadSubmitBtn.disabled = false;
-        btnText.style.display = 'block';
-        spinner.style.display = 'none';
-    }
+    elements.uploadSubmitBtn.disabled = loading;
+    btnText.style.display = loading ? 'none' : 'block';
+    spinner.style.display = loading ? 'block' : 'none';
 };
 
-// =====================
-// UI Helpers
-// =====================
-const showToast = (message, type = 'info') => {
+const showToast = (message, type) => {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
     
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 10);
-    
+    setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
         toast.classList.remove('show');
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 300);
+        setTimeout(() => toast.remove(), 300);
     }, 3000);
 };
 
-const scrollToContent = () => {
-    elements.contentSection.scrollIntoView({ behavior: 'smooth' });
+const getAuthErrorMessage = (code) => {
+    switch(code) {
+        case 'auth/invalid-email': return 'Invalid email format';
+        case 'auth/user-disabled': return 'Account disabled';
+        case 'auth/user-not-found': return 'Account not found';
+        case 'auth/wrong-password': return 'Incorrect password';
+        default: return 'Login failed. Please try again.';
+    }
 };
 
-// =====================
+const getStorageErrorMessage = (code) => {
+    switch(code) {
+        case 'storage/unauthorized': return 'You dont have permission';
+        case 'storage/canceled': return 'Upload canceled';
+        case 'storage/unknown': return 'Unknown error occurred';
+        default: return 'Upload failed. Please try again.';
+    }
+};
+
 // Event Listeners
-// =====================
 const initEventListeners = () => {
     // Menu toggle
     elements.menuToggle.addEventListener('click', () => {
         elements.navLinks.classList.toggle('active');
-        elements.menuToggle.classList.toggle('active');
     });
     
-    // Modal controls
-    elements.loginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
+    // Modals
+    elements.loginBtn.addEventListener('click', () => {
         elements.loginModal.style.display = 'block';
-    });
-    
-    elements.closeModal.addEventListener('click', () => {
-        elements.loginModal.style.display = 'none';
     });
     
     elements.uploadPhotoBtn.addEventListener('click', () => {
         elements.uploadSection.style.display = 'block';
     });
     
-    elements.closeUpload.addEventListener('click', () => {
-        elements.uploadSection.style.display = 'none';
-    });
-    
-    elements.logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        auth.signOut();
-        showToast('Logged out successfully', 'success');
-    });
-    
-    // Close modals when clicking outside
-    window.addEventListener('click', (e) => {
-        if (e.target === elements.loginModal) {
+    document.querySelectorAll('.close, .close-upload').forEach(closeBtn => {
+        closeBtn.addEventListener('click', () => {
             elements.loginModal.style.display = 'none';
-        }
-        if (e.target === elements.uploadSection) {
             elements.uploadSection.style.display = 'none';
+        });
+    });
+    
+    window.addEventListener('click', (e) => {
+        if (e.target === elements.loginModal) elements.loginModal.style.display = 'none';
+        if (e.target === elements.uploadSection) elements.uploadSection.style.display = 'none';
+    });
+    
+    // Forms
+    elements.loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = elements.loginEmail.value.trim();
+        const password = elements.loginPassword.value.trim();
+        await handleLogin(email, password);
+    });
+    
+    elements.uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = elements.photoUpload.files[0];
+        const description = elements.photoDescription.value.trim();
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            elements.uploadError.textContent = 'File size must be less than 5MB';
+            return;
         }
+        
+        await handleUpload(file, description);
+    });
+    
+    // Logout
+    elements.logoutBtn.addEventListener('click', () => {
+        auth.signOut();
+        showToast("Logged out successfully", "success");
     });
     
     // Navigation
-    elements.homeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>Welcome to My Portfolio</h2>
-            <p>Explore my work and journey through this interactive showcase.</p>
-        `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
-    });
-    
-    elements.aboutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>About Me</h2>
-            <div class="circular"></div>
-            <p>Hi, I'm <span class="highlight">Soundarrajan</span>!</p>
-            <p>I'm currently pursuing a BSc in Computer Science at ES Arts and Science College.</p>
-            <p>I completed my schooling in 2023, marking an important milestone in my academic journey. 
-            In my free time, I enjoy playing games and listening to music, which help me relax and unwind. 
-            I'm passionate about exploring new interests in the field of technology and always eager to learn and grow.</p>
-        `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
-    });
-    
-    elements.destinationBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>My Goals</h2>
-            <p><strong>Short-term Goal:</strong> To join an IT company and gain hands-on experience in the industry.</p>
-            <p><strong>Long-term Goal:</strong> To start my own business and create a positive impact.</p>
-        `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
-    });
-    
-    elements.contactBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>Contact Me</h2>
-            <p>If you'd like to get in touch, feel free to reach out:</p>
-            <div class="social-links">
-                <a href="https://www.facebook.com/share/1HENdXtkZx" target="_blank" class="social-icon">
-                    <i class="fab fa-facebook-f"></i>
-                </a>
-                <a href="mailto:soundarrajan2725@gmail.com" target="_blank" class="social-icon">
-                    <i class="fas fa-envelope"></i>
-                </a>
-                <a href="https://www.instagram.com/aakash_sr_25" target="_blank" class="social-icon">
-                    <i class="fab fa-instagram"></i>
-                </a>
-                <a href="https://github.com/soundarrajan25" target="_blank" class="social-icon">
-                    <i class="fab fa-github"></i>
-                </a>
-            </div>
-        `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
-    });
-    
-    elements.journeyBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = '';
-        elements.journeySection.style.display = 'block';
-        scrollToContent();
+    document.querySelectorAll('#homeBtn, #aboutBtn, #destinationBtn, #contactBtn, #journeyBtn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            elements.contentSection.innerHTML = getSectionContent(btn.id);
+            elements.journeySection.style.display = btn.id === 'journeyBtn' ? 'block' : 'none';
+            window.scrollTo({ top: elements.contentSection.offsetTop, behavior: 'smooth' });
+        });
     });
     
     // Parallax effect
     window.addEventListener('scroll', () => {
         const value = window.scrollY;
-        elements.text.style.top = 50 + value * -0.1 + '%';
-        elements.bird2.style.top = value * -1.5 + 'px';
-        elements.bird2.style.left = value * 2 + 'px';
-        elements.bird1.style.top = value * -1.5 + 'px';
-        elements.bird1.style.left = value * -5 + 'px';
-        elements.rocks.style.top = value * -0.12 + 'px';
-        elements.forest.style.top = value * 0.25 + 'px';
-        
-        // Header background change on scroll
-        if (value > 100) {
-            elements.header.style.background = 'rgba(255, 255, 255, 0.95)';
-            elements.header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
-        } else {
-            elements.header.style.background = 'var(--bg-light)';
-            elements.header.style.boxShadow = 'none';
-        }
+        elements.text.style.top = `${50 + value * -0.1}%`;
+        elements.bird1.style.top = `${value * -0.5}px`;
+        elements.bird1.style.left = `${value * -1}px`;
+        elements.bird2.style.top = `${value * -0.5}px`;
+        elements.bird2.style.left = `${value * 1}px`;
+        elements.header.style.background = value > 100 ? 'rgba(255,255,255,0.9)' : 'transparent';
     });
 };
 
-// =====================
+// Section Content
+const getSectionContent = (sectionId) => {
+    switch(sectionId) {
+        case 'homeBtn':
+            return '<h2>Welcome to My Portfolio</h2><p>Explore my work and journey through this interactive showcase.</p>';
+        case 'aboutBtn':
+            return `
+                <h2>About Me</h2>
+                <div class="about-content">
+                    <div class="profile-image"></div>
+                    <div class="about-text">
+                        <p>Hi, I'm <span class="highlight">Soundarrajan</span>!</p>
+                        <p>I'm currently pursuing a BSc in Computer Science at ES Arts and Science College.</p>
+                        <p>I completed my schooling in 2023. In my free time, I enjoy playing games and listening to music.</p>
+                    </div>
+                </div>
+            `;
+        case 'destinationBtn':
+            return `
+                <h2>My Goals</h2>
+                <div class="goals-content">
+                    <div class="goal-card">
+                        <h3>Short-term</h3>
+                        <p>Join an IT company and gain hands-on experience</p>
+                    </div>
+                    <div class="goal-card">
+                        <h3>Long-term</h3>
+                        <p>Start my own business and create positive impact</p>
+                    </div>
+                </div>
+            `;
+        case 'contactBtn':
+            return `
+                <h2>Contact Me</h2>
+                <div class="social-links">
+                    <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i></a>
+                    <a href="mailto:soundarrajan2725@gmail.com"><i class="fas fa-envelope"></i></a>
+                    <a href="https://instagram.com/aakash_sr_25" target="_blank"><i class="fab fa-instagram"></i></a>
+                    <a href="https://github.com/soundarrajan25" target="_blank"><i class="fab fa-github"></i></a>
+                </div>
+            `;
+        default:
+            return '<h2>Welcome</h2><p>Select a section to explore.</p>';
+    }
+};
+
 // Initialize App
-// =====================
 const initApp = () => {
     initAuth();
     initEventListeners();
-    initLoginForm();
-    initUploadForm();
-    
-    // Load initial content
-    elements.homeBtn.click();
+    // Load home content by default
+    elements.contentSection.innerHTML = getSectionContent('homeBtn');
 };
 
-// Start the application
+// Start the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', initApp);
