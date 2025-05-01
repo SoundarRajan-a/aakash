@@ -15,7 +15,7 @@
     <header id="header">
         <a href="#" class="logo">AAKASH SR</a>
         <div class="menu-toggle" id="menuToggle">
-            <span>Menu</span>
+            <i class="fas fa-bars"></i>
         </div>
         <ul id="navLinks">
             <li><a href="#" id="homeBtn" class="active">Home</a></li>
@@ -38,8 +38,7 @@
     </section>
 
     <div class="content-section" id="contentSection">
-        <h2>Welcome to My Portfolio</h2>
-        <p>Explore my work and journey through this interactive portfolio.</p>
+        <!-- Dynamic content will load here -->
     </div>
 
     <!-- Login Modal -->
@@ -48,16 +47,24 @@
             <span class="close">&times;</span>
             <h2>Admin Login</h2>
             <form id="loginForm">
-                <input type="email" id="email" placeholder="Your Email" required>
-                <input type="password" id="password" placeholder="Password" required>
-                <button type="submit">Login</button>
+                <div class="form-group">
+                    <input type="email" id="loginEmail" placeholder="Your Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                </div>
+                <button type="submit" id="loginSubmitBtn">
+                    <span class="btn-text">Login</span>
+                    <span class="spinner" style="display:none;"></span>
+                </button>
+                <p id="loginError" class="error-message"></p>
             </form>
         </div>
     </div>
 
     <!-- Upload Button -->
-    <button id="uploadPhotoBtn" class="upload-btn">
-        <i class="fas fa-cloud-upload-alt"></i> Upload Photo
+    <button id="uploadPhotoBtn" class="upload-btn" style="display:none;">
+        <i class="fas fa-cloud-upload-alt"></i>
     </button>
 
     <!-- Upload Modal -->
@@ -67,7 +74,7 @@
             <h2>Upload to Journey</h2>
             <form id="uploadForm">
                 <div class="form-group">
-                    <label for="photoUpload">Select Image:</label>
+                    <label for="photoUpload">Select Image (Max 5MB):</label>
                     <input type="file" id="photoUpload" accept="image/*" required>
                 </div>
                 <div class="form-group">
@@ -78,13 +85,17 @@
                     <span class="btn-text">Upload</span>
                     <span class="spinner" style="display:none;"></span>
                 </button>
+                <p id="uploadError" class="error-message"></p>
             </form>
         </div>
     </div>
 
     <!-- Journey Section -->
-    <div class="journey-section" id="journeySection">
-        <div class="container" id="publicPhotos"></div>
+    <div class="journey-section" id="journeySection" style="display:none;">
+        <h2>My Journey</h2>
+        <div class="photos-container" id="publicPhotos">
+            <!-- Photos will load here -->
+        </div>
     </div>
 
     <script src="script.js"></script>
