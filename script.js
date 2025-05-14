@@ -1,505 +1,965 @@
-// Appwrite Configuration
-const appwrite = new Appwrite();
+"use strict";
 
-// Initialize Appwrite client
-appwrite
-    .setEndpoint('https://nyc.cloud.appwrite.io/v1') // Your Appwrite endpoint
-    .setProject('6824e979003178b7222f'); // Your project ID
+// Initialize Appwrite
+const client = new Appwrite.Client();
+const account = new Appwrite.Account(client);
+const database = new Appwrite.Databases(client);
+const storage = new Appwrite.Storage(client);
+
+// Configure Appwrite client
+client
+    .setEndpoint('https://nyc.cloud.appwrite.io/v1') // Replace with your endpoint
+    .setProject('6825025b001922085c7f'); // Replace with your project ID
+
+// Database and Collection IDs
+const DB_ID = '6825031d00355f695121';
+const PROFILE_COLLECTION_ID = '682503610027481bfca6';
+const GOALS_COLLECTION_ID = '6825038200093a6e3d65';
+const JOURNEY_COLLECTION_ID = '68250389000bcaa2b005';
+const RESUME_COLLECTION_ID = '68250392002227756375';
 
 // DOM Elements
-const elements = {
-    // Header/Navigation
-    header: document.getElementById('header'),
-    menuToggle: document.getElementById('menuToggle'),
-    navLinks: document.getElementById('navLinks'),
-    
-    // Sections
-    aboutContent: document.getElementById('aboutContent'),
-    skillsContent: document.getElementById('skillsContent'),
-    projectsContent: document.getElementById('projectsContent'),
-    galleryContent: document.getElementById('galleryContent'),
-    experiencesContent: document.getElementById('experiencesContent'),
-    educationContent: document.getElementById('educationContent'),
-    blogContent: document.getElementById('blogContent'),
-    
-    // Admin Dashboard
-    adminDashboard: document.getElementById('adminDashboard'),
-    adminAvatar: document.getElementById('adminAvatar'),
-    adminName: document.getElementById('adminName'),
-    logoutBtn: document.getElementById('logoutBtn'),
-    closeAdminBtn: document.getElementById('closeAdminBtn'),
-    
-    // Login Modal
-    loginModal: document.getElementById('loginModal'),
-    loginForm: document.getElementById('loginForm'),
-    
-    // Other Modals
-    skillModal: document.getElementById('skillModal'),
-    projectModal: document.getElementById('projectModal'),
-    photoModal: document.getElementById('photoModal'),
-    experienceModal: document.getElementById('experienceModal'),
-    educationModal: document.getElementById('educationModal'),
-    blogModal: document.getElementById('blogModal'),
-    confirmModal: document.getElementById('confirmModal'),
-    
-    // Toast
-    toast: document.getElementById('toast'),
-    toastMessage: document.getElementById('toastMessage'),
-    
-    // Loading Screen
-    loadingScreen: document.getElementById('loadingScreen')
-};
+const text = document.getElementById('text');
+const bird1 = document.getElementById('bird1');
+const bird2 = document.getElementById('bird2');
+const rocks = document.getElementById('rocks');
+const forest = document.getElementById('forest');
+const water = document.getElementById('water');
+const header = document.getElementById('header');
+const contentSection = document.getElementById('contentSection');
+
+// Navigation Elements
+const homeBtn = document.getElementById('homeBtn');
+const aboutBtn = document.getElementById('aboutBtn');
+const destinationBtn = document.getElementById('destinationBtn');
+const contactBtn = document.getElementById('contactBtn');
+const journeyBtn = document.getElementById('journeyBtn');
+const loginBtn = document.getElementById('loginBtn');
+const adminBtn = document.getElementById('adminBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// Menu Elements
+const menuToggle = document.getElementById('menuToggle');
+const navLinks = document.getElementById('navLinks');
+
+// Modal Elements
+const loginModal = document.getElementById('loginModal');
+const closeModal = document.querySelector('.close');
+const adminModal = document.getElementById('adminModal');
+const closeAdmin = document.querySelector('.close-admin');
+
+// Admin Dashboard Elements
+const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+const profileForm = document.getElementById('profileForm');
+const goalsForm = document.getElementById('goalsForm');
+const journeyForm = document.getElementById('journeyForm');
+const resumeForm = document.getElementById('resumeForm');
+
+// Journey Section Elements
+const journeySection = document.getElementById('journeySection');
+const publicPhotos = document.getElementById('publicPhotos');
+const filterButtons = document.querySelectorAll('.filter-btn');
 
 // Global State
-let state = {
-    currentUser: null,
-    isAdmin: false,
-    currentModal: null,
-    confirmCallback: null,
-    dataToDelete: null
-};
+let currentUser = null;
+let profileData = null;
+let goalsData = null;
+let journeyData = [];
+let resumeData = null;
+let isEditingJourneyItem = false;
+let currentEditingJourneyId = null;
 
 // Initialize the application
-function init() {
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuthStatus();
+    loadInitialData();
     setupEventListeners();
-    checkAuthState();
-    loadContent();
-    
-    // Hide loading screen after 1.5 seconds (simulate loading)
-    setTimeout(() => {
-        elements.loadingScreen.style.display = 'none';
-    }, 1500);
+});
+
+// Check authentication status
+async function checkAuthStatus() {
+    try {
+        currentUser = await account.get();
+        updateUIForAuth(true);
+    } catch (error) {
+        updateUIForAuth(false);
+    }
 }
 
-// Set up event listeners
+// Update UI based on authentication status
+function updateUIForAuth(isAuthenticated) {
+    if (isAuthenticated) {
+        loginBtn.style.display = 'none';
+        adminBtn.style.display = 'block';
+        logoutBtn.style.display = 'block';
+        uploadPhotoBtn.style.display = 'block';
+    } else {
+        loginBtn.style.display = 'block';
+        adminBtn.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        uploadPhotoBtn.style.display = 'none';
+    }
+}
+
+// Load initial data
+async function loadInitialData() {
+    try {
+        // Load profile data
+        const profileResponse = await database.listDocuments(DB_ID, PROFILE_COLLECTION_ID);
+        if (profileResponse.documents.length > 0) {
+            profileData = profileResponse.documents[0];
+            updateProfileUI();
+        }
+
+        // Load goals data
+        const goalsResponse = await database.listDocuments(DB_ID, GOALS_COLLECTION_ID);
+        if (goalsResponse.documents.length > 0) {
+            goalsData = goalsResponse.documents[0];
+            updateGoalsUI();
+        }
+
+        // Load journey data
+        const journeyResponse = await database.listDocuments(DB_ID, JOURNEY_COLLECTION_ID);
+        journeyData = journeyResponse.documents;
+        displayJourneyItems('all');
+
+        // Load resume data
+        const resumeResponse = await database.listDocuments(DB_ID, RESUME_COLLECTION_ID);
+        if (resumeResponse.documents.length > 0) {
+            resumeData = resumeResponse.documents[0];
+            updateResumeUI();
+        }
+    } catch (error) {
+        console.error('Error loading initial data:', error);
+        showStatus('Error loading data. Please refresh the page.', 'error');
+    }
+}
+
+// Update profile UI
+function updateProfileUI() {
+    if (!profileData) return;
+
+    // Update profile image if it exists
+    if (profileData.image_id) {
+        try {
+            const profileImageUrl = storage.getFileView(DB_ID, profileData.image_id);
+            document.querySelector('.circular').style.backgroundImage = `url('${profileImageUrl}')`;
+        } catch (error) {
+            console.error('Error loading profile image:', error);
+        }
+    }
+
+    // Update about section if it's active
+    if (contentSection.innerHTML.includes('About Me')) {
+        aboutBtn.click();
+    }
+}
+
+// Update goals UI
+function updateGoalsUI() {
+    if (!goalsData) return;
+
+    // Update destination section if it's active
+    if (contentSection.innerHTML.includes('My Goals')) {
+        destinationBtn.click();
+    }
+}
+
+// Update resume UI
+function updateResumeUI() {
+    if (!resumeData) return;
+
+    const resumeLinkContainer = document.getElementById('resumeLinkContainer');
+    if (resumeLinkContainer) {
+        try {
+            const resumeUrl = storage.getFileView(DB_ID, resumeData.file_id);
+            resumeLinkContainer.innerHTML = `
+                <a href="${resumeUrl}" class="resume-link" target="_blank">Download Resume</a>
+                <p>Uploaded on: ${new Date(resumeData.$createdAt).toLocaleDateString()}</p>
+                <p>File: ${resumeData.file_name} (${formatFileSize(resumeData.file_size)})</p>
+            `;
+        } catch (error) {
+            console.error('Error loading resume file:', error);
+            resumeLinkContainer.innerHTML = '<p>Error loading resume file</p>';
+        }
+    }
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]);
+}
+
+// Setup event listeners
 function setupEventListeners() {
-    // Menu toggle
-    elements.menuToggle.addEventListener('click', toggleMenu);
-    
-    // Login form
-    elements.loginForm.addEventListener('submit', handleLogin);
-    
-    // Logout button
-    if (elements.logoutBtn) {
-        elements.logoutBtn.addEventListener('click', handleLogout);
-    }
-    
-    // Close admin dashboard
-    if (elements.closeAdminBtn) {
-        elements.closeAdminBtn.addEventListener('click', () => {
-            elements.adminDashboard.style.display = 'none';
-        });
-    }
-    
-    // Admin navigation
-    document.querySelectorAll('.admin-nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const section = link.getAttribute('data-section');
-            showAdminSection(section);
-        });
+    // Menu Toggle
+    menuToggle.addEventListener('click', toggleMenu);
+
+    // Navigation Buttons
+    homeBtn.addEventListener('click', showHome);
+    aboutBtn.addEventListener('click', showAbout);
+    destinationBtn.addEventListener('click', showDestination);
+    contactBtn.addEventListener('click', showContact);
+    journeyBtn.addEventListener('click', showJourney);
+    adminBtn.addEventListener('click', showAdminDashboard);
+    logoutBtn.addEventListener('click', handleLogout);
+
+    // Login Modal
+    loginBtn.addEventListener('click', openLoginModal);
+    closeModal.addEventListener('click', closeLoginModal);
+
+    // Admin Modal
+    closeAdmin.addEventListener('click', closeAdminModal);
+
+    // Upload Button
+    uploadPhotoBtn.addEventListener('click', openAdminModal);
+
+    // Forms
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    profileForm.addEventListener('submit', handleProfileUpdate);
+    goalsForm.addEventListener('submit', handleGoalsUpdate);
+    journeyForm.addEventListener('submit', handleJourneyItem);
+    resumeForm.addEventListener('submit', handleResumeUpload);
+
+    // Admin Tabs
+    document.querySelectorAll('.tab-btn').forEach(button => {
+        button.addEventListener('click', switchTab);
     });
+
+    // Journey Filter Buttons
+    filterButtons.forEach(button => {
+        button.addEventListener('click', filterJourneyItems);
+    });
+
+    // Image Preview
+    document.getElementById('profileImage').addEventListener('change', function(e) {
+        previewImage(e.target, 'profileImagePreview');
+    });
+    document.getElementById('journeyImage').addEventListener('change', function(e) {
+        previewImage(e.target, 'journeyImagePreview');
+    });
+
+    // Close modals when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target === loginModal) closeLoginModal();
+        if (e.target === adminModal) closeAdminModal();
+    });
+
+    // Scroll effect
+    window.addEventListener('scroll', handleScrollEffect);
+}
+
+// Toggle mobile menu
+function toggleMenu() {
+    navLinks.classList.toggle('active');
+    menuToggle.classList.toggle('active');
+}
+
+// Handle scroll parallax effect
+function handleScrollEffect() {
+    let value = window.scrollY;
+    text.style.top = 50 + value * -0.1 + '%';
+    bird2.style.top = value * -1.5 + 'px';
+    bird2.style.left = value * 2 + 'px';
+    bird1.style.top = value * -1.5 + 'px';
+    bird1.style.left = value * -5 + 'px';
+    rocks.style.top = value * -0.12 + 'px';
+    forest.style.top = value * 0.25 + 'px';
+    header.style.top = value * 0.5 + 'px';
+}
+
+// Scroll to content section
+function scrollToContent() {
+    contentSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Show status message
+function showStatus(message, type, elementId = null) {
+    const statusElement = elementId ? document.getElementById(elementId) : document.getElementById('loginStatus');
+    statusElement.textContent = message;
+    statusElement.className = type;
+    statusElement.style.display = 'block';
     
-    // Scroll event for header
-    window.addEventListener('scroll', handleScroll);
+    // Hide status after 5 seconds
+    setTimeout(() => {
+        statusElement.style.display = 'none';
+    }, 5000);
+}
+
+// Preview image before upload
+function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    const file = input.files[0];
     
-    // Tab buttons
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.innerHTML = '<p>No image selected</p>';
+    }
+}
+
+// Switch between admin tabs
+function switchTab(e) {
+    const tabId = e.target.getAttribute('data-tab');
+    
+    // Update active tab button
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
-            switchTab(tabId);
-        });
+        btn.classList.remove('active');
     });
+    e.target.classList.add('active');
     
-    // Admin tab buttons
-    document.querySelectorAll('.journey-admin-tabs .tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
-            switchAdminTab(tabId);
-        });
+    // Update active tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
     });
+    document.getElementById(`${tabId}-tab`).classList.add('active');
+}
+
+// Filter journey items
+function filterJourneyItems(e) {
+    const filter = e.target.getAttribute('data-filter');
     
-    // Add buttons in admin
-    document.getElementById('addSkillBtn').addEventListener('click', () => showModal('skillModal', 'Add New Skill'));
-    document.getElementById('addProjectBtn').addEventListener('click', () => showModal('projectModal', 'Add New Project'));
-    document.getElementById('addPhotoBtn').addEventListener('click', () => showModal('photoModal', 'Add New Photo'));
-    document.getElementById('addExperienceBtn').addEventListener('click', () => showModal('experienceModal', 'Add New Experience'));
-    document.getElementById('addEducationBtn').addEventListener('click', () => showModal('educationModal', 'Add New Education'));
-    document.getElementById('addBlogBtn').addEventListener('click', () => showModal('blogModal', 'Add New Blog Post'));
+    // Update active filter button
+    filterButtons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    e.target.classList.add('active');
     
-    // Close buttons for all modals
-    document.querySelectorAll('.close').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (state.currentModal) {
-                hideModal(state.currentModal);
+    // Display filtered items
+    displayJourneyItems(filter);
+}
+
+// Display journey items in public view
+function displayJourneyItems(filter = 'all') {
+    publicPhotos.innerHTML = '';
+
+    if (journeyData.length === 0) {
+        publicPhotos.innerHTML = '<p class="no-items">No journey items to display yet.</p>';
+        return;
+    }
+
+    const filteredItems = filter === 'all' 
+        ? journeyData 
+        : journeyData.filter(item => item.type === filter);
+
+    if (filteredItems.length === 0) {
+        publicPhotos.innerHTML = `<p class="no-items">No ${filter} items to display.</p>`;
+        return;
+    }
+
+    filteredItems.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'box';
+        
+        // Set background image if available
+        if (item.image_id) {
+            try {
+                const imageUrl = storage.getFileView(DB_ID, item.image_id);
+                itemElement.style.backgroundImage = `url('${imageUrl}')`;
+            } catch (error) {
+                console.error('Error loading journey item image:', error);
+                itemElement.style.backgroundColor = '#f0f0f0';
+            }
+        } else {
+            itemElement.style.backgroundColor = '#f0f0f0';
+        }
+
+        itemElement.innerHTML = `
+            <div class="content">
+                <h3>${item.title}</h3>
+                <p>${item.description}</p>
+                ${item.link ? `<a href="${item.link}" target="_blank">View ${item.type}</a>` : ''}
+            </div>
+        `;
+
+        publicPhotos.appendChild(itemElement);
+    });
+}
+
+// Display journey items in admin dashboard
+function displayAdminJourneyItems() {
+    const journeyItemsList = document.getElementById('journeyItemsList');
+    journeyItemsList.innerHTML = '';
+
+    if (journeyData.length === 0) {
+        journeyItemsList.innerHTML = '<p class="no-items">No journey items yet.</p>';
+        return;
+    }
+
+    journeyData.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'journey-item';
+        
+        let imagePreview = '';
+        if (item.image_id) {
+            try {
+                const imageUrl = storage.getFileView(DB_ID, item.image_id);
+                imagePreview = `<img src="${imageUrl}" style="max-width: 50px; max-height: 50px; margin-right: 10px;">`;
+            } catch (error) {
+                console.error('Error loading journey item image:', error);
+            }
+        }
+        
+        itemElement.innerHTML = `
+            <div>
+                <h4>${item.title} (${item.type})</h4>
+                <p>${item.description.substring(0, 50)}...</p>
+            </div>
+            <div class="journey-item-actions">
+                <button class="edit-btn" data-id="${item.$id}">Edit</button>
+                <button class="delete-btn" data-id="${item.$id}">Delete</button>
+            </div>
+        `;
+        
+        journeyItemsList.appendChild(itemElement);
+    });
+
+    // Add event listeners to delete buttons
+    document.querySelectorAll('.journey-item-actions .delete-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const itemId = e.target.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this item?')) {
+                try {
+                    await database.deleteDocument(DB_ID, JOURNEY_COLLECTION_ID, itemId);
+                    showStatus('Item deleted successfully!', 'success', 'journeyStatus');
+                    
+                    // Reload journey data
+                    const journeyResponse = await database.listDocuments(DB_ID, JOURNEY_COLLECTION_ID);
+                    journeyData = journeyResponse.documents;
+                    
+                    displayAdminJourneyItems();
+                    displayJourneyItems('all');
+                } catch (error) {
+                    console.error('Error deleting journey item:', error);
+                    showStatus('Failed to delete item', 'error', 'journeyStatus');
+                }
             }
         });
     });
-    
-    // Confirm modal buttons
-    document.getElementById('confirmCancel').addEventListener('click', () => hideModal('confirmModal'));
-    document.getElementById('confirmOk').addEventListener('click', confirmAction);
-    
-    // Click outside modal to close
-    window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal')) {
-            hideModal(state.currentModal);
-        }
-    });
-}
 
-// Check authentication state
-async function checkAuthState() {
-    try {
-        const user = await appwrite.account.get();
-        state.currentUser = user;
-        state.isAdmin = true;
-        
-        // Show admin dashboard button or other admin features
-        document.getElementById('loginBtn').textContent = 'Dashboard';
-    } catch (error) {
-        state.currentUser = null;
-        state.isAdmin = false;
-    }
+    // Add event listeners to edit buttons
+    document.querySelectorAll('.journey-item-actions .edit-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const itemId = e.target.getAttribute('data-id');
+            const item = journeyData.find(i => i.$id === itemId);
+            
+            if (item) {
+                // Fill the form with item data
+                document.getElementById('contentType').value = item.type;
+                document.getElementById('journeyTitle').value = item.title;
+                document.getElementById('journeyDescription').value = item.description;
+                document.getElementById('journeyLink').value = item.link || '';
+                
+                if (item.image_id) {
+                    try {
+                        const imageUrl = storage.getFileView(DB_ID, item.image_id);
+                        document.getElementById('journeyImagePreview').innerHTML = `<img src="${imageUrl}" alt="Journey Item Preview">`;
+                    } catch (error) {
+                        console.error('Error loading image:', error);
+                        document.getElementById('journeyImagePreview').innerHTML = '<p>Image not available</p>';
+                    }
+                } else {
+                    document.getElementById('journeyImagePreview').innerHTML = '<p>No image</p>';
+                }
+                
+                // Change form to edit mode
+                isEditingJourneyItem = true;
+                currentEditingJourneyId = itemId;
+                document.getElementById('journeySubmitBtn').textContent = 'Update Content';
+                
+                // Scroll to form
+                document.getElementById('journey-tab').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
 }
 
 // Handle login
 async function handleLogin(e) {
     e.preventDefault();
-    const email = document.getElementById('email').value;
+    const email = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
     try {
-        await appwrite.account.createEmailSession(email, password);
-        state.currentUser = await appwrite.account.get();
-        state.isAdmin = true;
+        showStatus('Logging in...', 'warning');
         
-        hideModal('loginModal');
-        showToast('Login successful!');
+        // First try to create the account (will fail if already exists)
+        try {
+            await account.create('unique()', email, password);
+            showStatus('Account created! Logging in...', 'success');
+        } catch (createError) {
+            // Account likely already exists, proceed to login
+            console.log('Account may already exist, proceeding to login');
+        }
         
-        // Update UI
-        document.getElementById('loginBtn').textContent = 'Dashboard';
+        // Create session
+        await account.createEmailSession(email, password);
+        currentUser = await account.get();
+        
+        updateUIForAuth(true);
+        loginModal.style.display = 'none';
+        document.getElementById('loginForm').reset();
+        
+        showStatus('Login successful!', 'success');
+        loadInitialData();
     } catch (error) {
-        showToast('Login failed. Please check your credentials.', 'error');
         console.error('Login error:', error);
+        showStatus('Login failed: ' + error.message, 'error');
     }
 }
 
 // Handle logout
-async function handleLogout() {
+async function handleLogout(e) {
+    e.preventDefault();
     try {
-        await appwrite.account.deleteSession('current');
-        state.currentUser = null;
-        state.isAdmin = false;
+        await account.deleteSession('current');
+        currentUser = null;
+        updateUIForAuth(false);
         
-        // Hide admin dashboard
-        elements.adminDashboard.style.display = 'none';
+        if (journeySection.style.display === 'block') {
+            journeyBtn.click();
+        }
         
-        // Update UI
-        document.getElementById('loginBtn').textContent = 'Admin';
-        showToast('Logged out successfully');
+        showStatus('Logged out successfully', 'success');
     } catch (error) {
-        showToast('Logout failed. Please try again.', 'error');
         console.error('Logout error:', error);
+        showStatus('Logout failed: ' + error.message, 'error');
     }
 }
 
-// Toggle mobile menu
-function toggleMenu() {
-    elements.navLinks.classList.toggle('active');
+// Open login modal
+function openLoginModal(e) {
+    e.preventDefault();
+    loginModal.style.display = 'block';
+    document.getElementById('loginStatus').style.display = 'none';
 }
 
-// Handle scroll for header
-function handleScroll() {
-    if (window.scrollY > 50) {
-        elements.header.classList.add('scrolled');
-    } else {
-        elements.header.classList.remove('scrolled');
-    }
+// Close login modal
+function closeLoginModal() {
+    loginModal.style.display = 'none';
+    document.getElementById('loginForm').reset();
+    document.getElementById('loginStatus').style.display = 'none';
 }
 
-// Show modal
-function showModal(modalId, title = '') {
-    state.currentModal = modalId;
-    const modal = document.getElementById(modalId);
-    
-    if (title && modal.querySelector('h2')) {
-        modal.querySelector('h2').textContent = title;
-    }
-    
-    modal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
+// Open admin modal
+function openAdminModal(e) {
+    if (e) e.preventDefault();
+    adminModal.style.display = 'block';
+    loadAdminData();
 }
 
-// Hide modal
-function hideModal(modalId) {
-    if (!modalId) return;
-    
-    const modal = document.getElementById(modalId);
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-    state.currentModal = null;
-    
-    // Reset form if exists
-    const form = modal.querySelector('form');
-    if (form) form.reset();
+// Close admin modal
+function closeAdminModal() {
+    adminModal.style.display = 'none';
+    resetJourneyForm();
 }
 
-// Show confirmation modal
-function showConfirm(message, callback, data = null) {
-    document.getElementById('confirmModalMessage').textContent = message;
-    state.confirmCallback = callback;
-    state.dataToDelete = data;
-    showModal('confirmModal');
-}
-
-// Confirm action
-function confirmAction() {
-    if (state.confirmCallback) {
-        state.confirmCallback(state.dataToDelete);
-    }
-    hideModal('confirmModal');
-}
-
-// Show toast notification
-function showToast(message, type = 'success') {
-    elements.toastMessage.textContent = message;
-    elements.toast.className = 'toast ' + type;
-    elements.toast.classList.add('show');
-    
-    setTimeout(() => {
-        elements.toast.classList.remove('show');
-    }, 3000);
-}
-
-// Switch tabs
-function switchTab(tabId) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-tab') === tabId) {
-            btn.classList.add('active');
-        }
-    });
-    
-    // Update tab content
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-        if (content.id === tabId + 'Tab') {
-            content.classList.add('active');
-        }
-    });
-}
-
-// Switch admin tabs
-function switchAdminTab(tabId) {
-    // Update tab buttons
-    document.querySelectorAll('.journey-admin-tabs .tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-tab') === tabId) {
-            btn.classList.add('active');
-        }
-    });
-    
-    // Update tab content
-    document.querySelectorAll('.journey-admin-content').forEach(content => {
-        content.classList.remove('active');
-        if (content.id === tabId) {
-            content.classList.add('active');
-        }
-    });
-}
-
-// Show admin section
-function showAdminSection(sectionId) {
-    // Update nav links
-    document.querySelectorAll('.admin-nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('data-section') === sectionId) {
-            link.classList.add('active');
-        }
-    });
-    
-    // Update sections
-    document.querySelectorAll('.admin-section').forEach(section => {
-        section.classList.remove('active');
-        if (section.id === sectionId + 'Section') {
-            section.classList.add('active');
-        }
-    });
-    
-    // Update section title
-    document.getElementById('adminSectionTitle').textContent = 
-        sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
-}
-
-// Load content from Appwrite
-async function loadContent() {
+// Load data for admin dashboard
+async function loadAdminData() {
     try {
-        // Load about content
-        const about = await appwrite.database.getDocument('about', 'current');
-        renderAboutContent(about);
+        showStatus('Loading admin data...', 'warning', 'profileStatus');
         
-        // Load skills
-        const skills = await appwrite.database.listDocuments('skills');
-        renderSkills(skills.documents);
+        // Load profile data
+        const profileResponse = await database.listDocuments(DB_ID, PROFILE_COLLECTION_ID);
+        if (profileResponse.documents.length > 0) {
+            profileData = profileResponse.documents[0];
+            document.getElementById('profileName').value = profileData.name || '';
+            document.getElementById('profileTitle').value = profileData.title || '';
+            document.getElementById('profileBio').value = profileData.bio || '';
+            
+            if (profileData.image_id) {
+                try {
+                    const imageUrl = storage.getFileView(DB_ID, profileData.image_id);
+                    document.getElementById('profileImagePreview').innerHTML = `<img src="${imageUrl}" alt="Profile Preview">`;
+                } catch (error) {
+                    console.error('Error loading profile image:', error);
+                    document.getElementById('profileImagePreview').innerHTML = '<p>Image not available</p>';
+                }
+            }
+        }
+
+        // Load goals data
+        const goalsResponse = await database.listDocuments(DB_ID, GOALS_COLLECTION_ID);
+        if (goalsResponse.documents.length > 0) {
+            goalsData = goalsResponse.documents[0];
+            document.getElementById('shortTermGoal').value = goalsData.short_term || '';
+            document.getElementById('longTermGoal').value = goalsData.long_term || '';
+        }
+
+        // Load journey data
+        const journeyResponse = await database.listDocuments(DB_ID, JOURNEY_COLLECTION_ID);
+        journeyData = journeyResponse.documents;
+        displayAdminJourneyItems();
+
+        // Load resume data
+        const resumeResponse = await database.listDocuments(DB_ID, RESUME_COLLECTION_ID);
+        if (resumeResponse.documents.length > 0) {
+            resumeData = resumeResponse.documents[0];
+            updateResumeUI();
+        }
         
-        // Load projects
-        const projects = await appwrite.database.listDocuments('projects');
-        renderProjects(projects.documents);
-        
-        // Load gallery photos
-        const photos = await appwrite.database.listDocuments('gallery');
-        renderGallery(photos.documents);
-        
-        // Load experiences
-        const experiences = await appwrite.database.listDocuments('experiences');
-        renderExperiences(experiences.documents);
-        
-        // Load education
-        const education = await appwrite.database.listDocuments('education');
-        renderEducation(education.documents);
-        
-        // Load blog posts
-        const blogs = await appwrite.database.listDocuments('blogs', [], 3);
-        renderBlogs(blogs.documents);
-        
+        showStatus('Admin data loaded', 'success', 'profileStatus');
     } catch (error) {
-        console.error('Error loading content:', error);
-        showToast('Error loading content. Please try again later.', 'error');
+        console.error('Error loading admin data:', error);
+        showStatus('Failed to load admin data', 'error', 'profileStatus');
     }
 }
 
-// Render about content
-function renderAboutContent(data) {
-    elements.aboutContent.innerHTML = `
-        <div class="about-image">
-            <img src="${appwrite.storage.getFileView('about-image', data.image)}" alt="About Me">
-        </div>
-        <div class="about-text">
-            <h3>${data.title}</h3>
-            <p>${data.content}</p>
+// Handle profile update
+async function handleProfileUpdate(e) {
+    e.preventDefault();
+    const name = document.getElementById('profileName').value;
+    const title = document.getElementById('profileTitle').value;
+    const bio = document.getElementById('profileBio').value;
+    const imageFile = document.getElementById('profileImage').files[0];
+
+    try {
+        showStatus('Updating profile...', 'warning', 'profileStatus');
+        
+        let imageId = profileData?.image_id || null;
+
+        // Upload new image if selected
+        if (imageFile) {
+            // Delete old image if it exists
+            if (imageId) {
+                try {
+                    await storage.deleteFile(DB_ID, imageId);
+                } catch (error) {
+                    console.error('Error deleting old image:', error);
+                }
+            }
             
-            <div class="about-goals">
-                <h4>My Goals</h4>
-                <div class="goal-item">
-                    <strong>Short-term:</strong> ${data.shortTermGoal}
-                </div>
-                <div class="goal-item">
-                    <strong>Long-term:</strong> ${data.longTermGoal}
-                </div>
+            // Upload new image
+            const fileExt = imageFile.name.split('.').pop();
+            const fileId = `profile_${Date.now()}.${fileExt}`;
+            
+            const response = await storage.createFile(
+                DB_ID, 
+                fileId,
+                imageFile
+            );
+            imageId = response.$id;
+        }
+
+        // Prepare profile data
+        const profile = {
+            name,
+            title,
+            bio,
+            image_id: imageId || null
+        };
+
+        if (profileData) {
+            // Update existing profile
+            await database.updateDocument(DB_ID, PROFILE_COLLECTION_ID, profileData.$id, profile);
+        } else {
+            // Create new profile
+            await database.createDocument(DB_ID, PROFILE_COLLECTION_ID, 'unique()', profile);
+        }
+
+        // Reload profile data
+        const profileResponse = await database.listDocuments(DB_ID, PROFILE_COLLECTION_ID);
+        profileData = profileResponse.documents[0];
+        updateProfileUI();
+        
+        showStatus('Profile updated successfully!', 'success', 'profileStatus');
+        document.getElementById('profileImage').value = '';
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        showStatus('Failed to update profile: ' + error.message, 'error', 'profileStatus');
+    }
+}
+
+// Handle goals update
+async function handleGoalsUpdate(e) {
+    e.preventDefault();
+    const shortTermGoal = document.getElementById('shortTermGoal').value;
+    const longTermGoal = document.getElementById('longTermGoal').value;
+
+    try {
+        showStatus('Updating goals...', 'warning', 'goalsStatus');
+        
+        const goals = {
+            short_term: shortTermGoal,
+            long_term: longTermGoal
+        };
+
+        if (goalsData) {
+            // Update existing goals
+            await database.updateDocument(DB_ID, GOALS_COLLECTION_ID, goalsData.$id, goals);
+        } else {
+            // Create new goals
+            await database.createDocument(DB_ID, GOALS_COLLECTION_ID, 'unique()', goals);
+        }
+
+        // Reload goals data
+        const goalsResponse = await database.listDocuments(DB_ID, GOALS_COLLECTION_ID);
+        goalsData = goalsResponse.documents[0];
+        updateGoalsUI();
+        
+        showStatus('Goals updated successfully!', 'success', 'goalsStatus');
+    } catch (error) {
+        console.error('Error updating goals:', error);
+        showStatus('Failed to update goals: ' + error.message, 'error', 'goalsStatus');
+    }
+}
+
+// Handle journey item add/update
+async function handleJourneyItem(e) {
+    e.preventDefault();
+    const type = document.getElementById('contentType').value;
+    const title = document.getElementById('journeyTitle').value;
+    const description = document.getElementById('journeyDescription').value;
+    const link = document.getElementById('journeyLink').value || null;
+    const imageFile = document.getElementById('journeyImage').files[0];
+
+    try {
+        showStatus(isEditingJourneyItem ? 'Updating item...' : 'Adding item...', 'warning', 'journeyStatus');
+        
+        let imageId = null;
+
+        // Upload image if selected
+        if (imageFile) {
+            const fileExt = imageFile.name.split('.').pop();
+            const fileId = `${type}_${Date.now()}.${fileExt}`;
+            
+            const response = await storage.createFile(
+                DB_ID, 
+                fileId,
+                imageFile
+            );
+            imageId = response.$id;
+        }
+
+        // Prepare journey item data
+        const journeyItem = {
+            type,
+            title,
+            description,
+            link,
+            image_id: imageId || null
+        };
+
+        if (isEditingJourneyItem && currentEditingJourneyId) {
+            // Update existing item
+            await database.updateDocument(DB_ID, JOURNEY_COLLECTION_ID, currentEditingJourneyId, journeyItem);
+            showStatus('Item updated successfully!', 'success', 'journeyStatus');
+        } else {
+            // Create new item
+            await database.createDocument(DB_ID, JOURNEY_COLLECTION_ID, 'unique()', journeyItem);
+            showStatus('Item added successfully!', 'success', 'journeyStatus');
+        }
+
+        // Reset form
+        resetJourneyForm();
+        
+        // Reload journey data
+        const journeyResponse = await database.listDocuments(DB_ID, JOURNEY_COLLECTION_ID);
+        journeyData = journeyResponse.documents;
+        
+        displayAdminJourneyItems();
+        displayJourneyItems('all');
+    } catch (error) {
+        console.error('Error saving journey item:', error);
+        showStatus('Failed to save item: ' + error.message, 'error', 'journeyStatus');
+    }
+}
+
+// Reset journey form
+function resetJourneyForm() {
+    document.getElementById('journeyForm').reset();
+    document.getElementById('journeyImagePreview').innerHTML = '';
+    document.getElementById('journeySubmitBtn').textContent = 'Add Content';
+    isEditingJourneyItem = false;
+    currentEditingJourneyId = null;
+}
+
+// Handle resume upload
+async function handleResumeUpload(e) {
+    e.preventDefault();
+    const file = document.getElementById('resumeFile').files[0];
+
+    if (!file) {
+        showStatus('Please select a PDF file to upload.', 'error', 'resumeStatus');
+        return;
+    }
+
+    if (file.type !== 'application/pdf') {
+        showStatus('Please upload a PDF file only.', 'error', 'resumeStatus');
+        return;
+    }
+
+    try {
+        showStatus('Uploading resume...', 'warning', 'resumeStatus');
+        
+        // Delete old resume if it exists
+        if (resumeData) {
+            try {
+                await storage.deleteFile(DB_ID, resumeData.file_id);
+                await database.deleteDocument(DB_ID, RESUME_COLLECTION_ID, resumeData.$id);
+            } catch (error) {
+                console.error('Error deleting old resume:', error);
+            }
+        }
+
+        // Upload new resume file
+        const fileId = `resume_${Date.now()}.pdf`;
+        const fileResponse = await storage.createFile(DB_ID, fileId, file);
+
+        // Create resume document
+        const resumeDoc = {
+            file_id: fileResponse.$id,
+            file_name: file.name,
+            file_size: file.size,
+            file_type: file.type
+        };
+
+        await database.createDocument(DB_ID, RESUME_COLLECTION_ID, 'unique()', resumeDoc);
+
+        // Reload resume data
+        const resumeResponse = await database.listDocuments(DB_ID, RESUME_COLLECTION_ID);
+        resumeData = resumeResponse.documents[0];
+        updateResumeUI();
+
+        document.getElementById('resumeForm').reset();
+        showStatus('Resume uploaded successfully!', 'success', 'resumeStatus');
+    } catch (error) {
+        console.error('Error uploading resume:', error);
+        showStatus('Failed to upload resume: ' + error.message, 'error', 'resumeStatus');
+    }
+}
+
+// Navigation functions
+function showHome(e) {
+    if (e) e.preventDefault();
+    setActiveNav(homeBtn);
+    contentSection.innerHTML = `
+        <h2>Welcome to My Portfolio</h2>
+        <p>Explore my journey, projects, and professional goals through this interactive portfolio website.</p>
+        <p>Use the navigation menu to learn more about me and my work.</p>
+    `;
+    journeySection.style.display = 'none';
+    scrollToContent();
+}
+
+function showAbout(e) {
+    if (e) e.preventDefault();
+    setActiveNav(aboutBtn);
+    
+    const name = profileData?.name || 'Soundarrajan';
+    const title = profileData?.title || 'Computer Science Student';
+    const bio = profileData?.bio || `
+        Hi, I'm <span class="highlight">${name}</span>!
+        I'm currently pursuing a BSc in Computer Science at ES Arts and Science College.
+        I completed my schooling in 2023, marking an important milestone in my academic journey. 
+        In my free time, I enjoy playing games and listening to music, which help me relax and unwind. 
+        I'm passionate about exploring new interests in the field of technology and always eager to learn and grow.
+    `;
+    
+    contentSection.innerHTML = `
+        <h2>About Me</h2>
+        <div class="circular"></div>
+        <h3>${title}</h3>
+        <p>${bio}</p>
+    `;
+    
+    journeySection.style.display = 'none';
+    scrollToContent();
+    
+    // Update profile image if it exists
+    if (profileData?.image_id) {
+        try {
+            const profileImageUrl = storage.getFileView(DB_ID, profileData.image_id);
+            document.querySelector('.circular').style.backgroundImage = `url('${profileImageUrl}')`;
+        } catch (error) {
+            console.error('Error loading profile image:', error);
+        }
+    }
+}
+
+function showDestination(e) {
+    if (e) e.preventDefault();
+    setActiveNav(destinationBtn);
+    
+    const shortTerm = goalsData?.short_term || 'To join an IT company and gain hands-on experience in the industry.';
+    const longTerm = goalsData?.long_term || 'To start my own business and create a positive impact.';
+    
+    contentSection.innerHTML = `
+        <h2>My Goals</h2>
+        <div class="goals-container">
+            <div class="goal-card">
+                <h3>Short-term Goal</h3>
+                <p>${shortTerm}</p>
+            </div>
+            <div class="goal-card">
+                <h3>Long-term Goal</h3>
+                <p>${longTerm}</p>
             </div>
         </div>
     `;
+    journeySection.style.display = 'none';
+    scrollToContent();
 }
 
-// Render skills
-function renderSkills(skills) {
-    elements.skillsContent.innerHTML = skills.map(skill => `
-        <div class="skill-card">
-            <div class="skill-icon">
-                <i class="${skill.icon}"></i>
-            </div>
-            <h3 class="skill-name">${skill.name}</h3>
-            <div class="skill-level">
-                <div class="skill-level-bar" style="width: ${skill.level}%"></div>
-            </div>
-            <p>${skill.description}</p>
+function showContact(e) {
+    if (e) e.preventDefault();
+    setActiveNav(contactBtn);
+    contentSection.innerHTML = `
+        <h2>Contact Me</h2>
+        <p>If you'd like to get in touch, feel free to reach out through any of these channels:</p>
+        <div class="social-links">
+            <a href="https://www.facebook.com/share/1HENdXtkZx" target="_blank" class="social-icon">
+                <i class="fab fa-facebook-f"></i>
+            </a>
+            <a href="mailto:soundarrajan2725@gmail.com" target="_blank" class="social-icon">
+                <i class="fas fa-envelope"></i>
+            </a>
+            <a href="https://www.instagram.com/aakash_sr_25" target="_blank" class="social-icon">
+                <i class="fab fa-instagram"></i>
+            </a>
+            <a href="https://github.com/soundarrajan25" target="_blank" class="social-icon">
+                <i class="fab fa-github"></i>
+            </a>
         </div>
-    `).join('');
-}
-
-// Render projects
-function renderProjects(projects) {
-    elements.projectsContent.innerHTML = projects.map(project => `
-        <div class="project-card">
-            <div class="project-image">
-                <img src="${appwrite.storage.getFileView('project-images', project.image)}" alt="${project.title}">
-            </div>
-            <div class="project-content">
-                <h3 class="project-title">${project.title}</h3>
-                <p class="project-description">${project.description}</p>
-                <div class="project-technologies">
-                    ${project.technologies.split(',').map(tech => `
-                        <span class="technology-tag">${tech.trim()}</span>
-                    `).join('')}
-                </div>
-                <div class="project-links">
-                    ${project.link ? `<a href="${project.link}" class="btn-secondary" target="_blank">View Project</a>` : ''}
-                    ${project.github ? `<a href="${project.github}" class="btn-outline" target="_blank">GitHub</a>` : ''}
-                </div>
-            </div>
+        ${resumeData ? `
+        <div style="margin-top: 30px;">
+            <h3>Download My Resume</h3>
+            <a href="${storage.getFileView(DB_ID, resumeData.file_id)}" class="resume-link" target="_blank">
+                Download Resume
+            </a>
         </div>
-    `).join('');
+        ` : ''}
+    `;
+    journeySection.style.display = 'none';
+    scrollToContent();
 }
 
-// Render gallery
-function renderGallery(photos) {
-    elements.galleryContent.innerHTML = photos.map(photo => `
-        <div class="gallery-item">
-            <img src="${appwrite.storage.getFileView('gallery-images', photo.image)}" alt="${photo.title}">
-            <div class="gallery-overlay">
-                <h4>${photo.title}</h4>
-                <p>${photo.description}</p>
-                <small>${new Date(photo.date).toLocaleDateString()} • ${photo.location}</small>
-            </div>
-        </div>
-    `).join('');
+function showJourney(e) {
+    if (e) e.preventDefault();
+    setActiveNav(journeyBtn);
+    contentSection.innerHTML = '';
+    journeySection.style.display = 'block';
+    scrollToContent();
 }
 
-// Render experiences
-function renderExperiences(experiences) {
-    elements.experiencesContent.innerHTML = experiences.map((exp, index) => `
-        <div class="timeline-item ${index % 2 === 0 ? 'even' : 'odd'}">
-            <div class="timeline-date">
-                ${new Date(exp.startDate).toLocaleDateString()} - 
-                ${exp.current ? 'Present' : new Date(exp.endDate).toLocaleDateString()}
-            </div>
-            <div class="timeline-content">
-                <h3 class="timeline-title">${exp.title}</h3>
-                <p class="timeline-company">${exp.company} • ${exp.location}</p>
-                <p>${exp.description}</p>
-            </div>
-        </div>
-    `).join('');
+function showAdminDashboard(e) {
+    if (e) e.preventDefault();
+    adminModal.style.display = 'block';
+    loadAdminData();
 }
 
-// Render education
-function renderEducation(education) {
-    elements.educationContent.innerHTML = education.map((edu, index) => `
-        <div class="timeline-item ${index % 2 === 0 ? 'even' : 'odd'}">
-            <div class="timeline-date">
-                ${new Date(edu.startDate).toLocaleDateString()} - 
-                ${edu.current ? 'Present' : new Date(edu.endDate).toLocaleDateString()}
-            </div>
-            <div class="timeline-content">
-                <h3 class="timeline-title">${edu.degree}</h3>
-                <p class="timeline-company">${edu.institution} • ${edu.field}</p>
-                ${edu.description ? `<p>${edu.description}</p>` : ''}
-            </div>
-        </div>
-    `).join('');
+// Helper function to set active navigation
+function setActiveNav(activeBtn) {
+    document.querySelectorAll('#navLinks li a').forEach(link => {
+        link.classList.remove('active');
+    });
+    activeBtn.classList.add('active');
 }
-
-// Render blogs
-function renderBlogs(blogs) {
-    elements.blogContent.innerHTML = blogs.map(blog => `
-        <div class="blog-card">
-            <div class="blog-image">
-                <img src="${appwrite.storage.getFileView('blog-images', blog.image)}" alt="${blog.title}">
-            </div>
-            <div class="blog-content">
-                <div class="blog-meta">
-                    <span>${new Date(blog.publishDate).toLocaleDateString()}</span>
-                    <span>${blog.category}</span>
-                </div>
-                <h3 class="blog-title">${blog.title}</h3>
-                <p class="blog-excerpt">${blog.excerpt}</p>
-                <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', init);
