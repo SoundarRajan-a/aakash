@@ -1,531 +1,479 @@
-import firebaseConfig from './firebase-config.js';
-firebase.initializeApp(firebaseConfig); 
+// Appwrite Client Setup
+const client = new Client()
+    .setEndpoint('https://cloud.appwrite.io/v1') // Your Appwrite Endpoint
+    .setProject('YOUR_PROJECT_ID'); // Your Project ID
 
-const auth = firebase.auth();
-const storage = firebase.storage();
+const account = new Account(client);
+const databases = new Databases(client);
+const storage = new Storage(client);
 
 // DOM Elements
-const elements = {
-    // Navigation
-    menuToggle: document.getElementById('menuToggle'),
-    navLinks: document.getElementById('navLinks'),
-    homeBtn: document.getElementById('homeBtn'),
-    aboutBtn: document.getElementById('aboutBtn'),
-    destinationBtn: document.getElementById('destinationBtn'),
-    contactBtn: document.getElementById('contactBtn'),
-    journeyBtn: document.getElementById('journeyBtn'),
-    loginBtn: document.getElementById('loginBtn'),
-    logoutBtn: document.getElementById('logoutBtn'),
-    
-    // Modals
-    loginModal: document.getElementById('loginModal'),
-    closeModal: document.querySelector('.close'),
-    uploadSection: document.getElementById('uploadSection'),
-    closeUpload: document.querySelector('.close-upload'),
-    uploadPhotoBtn: document.getElementById('uploadPhotoBtn'),
-    
-    // Login Form
-    loginForm: document.getElementById('loginForm'),
-    loginEmail: document.getElementById('loginEmail'),
-    loginPassword: document.getElementById('loginPassword'),
-    loginSubmitBtn: document.getElementById('loginSubmitBtn'),
-    loginStatus: document.getElementById('loginStatus'),
-    
-    // Upload Form
-    uploadForm: document.getElementById('uploadForm'),
-    photoUpload: document.getElementById('photoUpload'),
-    photoDescription: document.getElementById('photoDescription'),
-    uploadSubmitBtn: document.getElementById('uploadSubmitBtn'),
-    uploadStatus: document.getElementById('uploadStatus'),
-    progressBar: document.getElementById('progressBar'),
-    qualitySlider: document.getElementById('qualitySlider'),
-    qualityValue: document.getElementById('qualityValue'),
-    fileInfo: document.getElementById('fileInfo'),
-    
-    // Content
-    contentSection: document.getElementById('contentSection'),
-    journeySection: document.getElementById('journeySection'),
-    publicPhotos: document.getElementById('publicPhotos'),
-    
-    // Parallax
-    text: document.getElementById('text'),
-    bird1: document.getElementById('bird1'),
-    bird2: document.getElementById('bird2'),
-    rocks: document.getElementById('rocks'),
-    forest: document.getElementById('forest'),
-    water: document.getElementById('water'),
-    header: document.getElementById('header')
-};
+const text = document.getElementById('text');
+const bird1 = document.getElementById('bird1');
+const bird2 = document.getElementById('bird2');
+const rocks = document.getElementById('rocks');
+const forest = document.getElementById('forest');
+const water = document.getElementById('water');
+const header = document.getElementById('header');
+const contentSection = document.getElementById('contentSection');
+const dynamicName = document.getElementById('dynamicName');
 
-// App State
+// Buttons
+const homeBtn = document.getElementById('homeBtn');
+const aboutBtn = document.getElementById('aboutBtn');
+const destinationBtn = document.getElementById('destinationBtn');
+const contactBtn = document.getElementById('contactBtn');
+const journeyBtn = document.getElementById('journeyBtn');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// Admin Elements
+const adminOverlay = document.getElementById('adminOverlay');
+const loginModal = document.getElementById('loginModal');
+const adminModal = document.getElementById('adminModal');
+const closeButtons = document.querySelectorAll('.close');
+
+// Forms
+const loginForm = document.getElementById('loginForm');
+const profileForm = document.getElementById('profileForm');
+const projectForm = document.getElementById('projectForm');
+const journeyForm = document.getElementById('journeyForm');
+const blogForm = document.getElementById('blogForm');
+
+// State
+let isAdmin = false;
 let currentUser = null;
-let photos = [];
 
-// Initialize Event Listeners
-function initEventListeners() {
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuthState();
+    loadInitialData();
+    
     // Menu Toggle
-    elements.menuToggle.addEventListener('click', () => {
-        elements.navLinks.classList.toggle('active');
-    });
-    
-    // Modal Controls
-    elements.loginBtn.addEventListener('click', () => {
-        elements.loginModal.style.display = 'block';
-    });
-    
-    elements.closeModal.addEventListener('click', () => {
-        elements.loginModal.style.display = 'none';
-    });
-    
-    elements.uploadPhotoBtn.addEventListener('click', () => {
-        elements.uploadSection.style.display = 'block';
-    });
-    
-    elements.closeUpload.addEventListener('click', () => {
-        elements.uploadSection.style.display = 'none';
-    });
-    
-    window.addEventListener('click', (e) => {
-        if (e.target === elements.loginModal) elements.loginModal.style.display = 'none';
-        if (e.target === elements.uploadSection) elements.uploadSection.style.display = 'none';
+    document.getElementById('menuToggle').addEventListener('click', function() {
+        document.getElementById('navLinks').classList.toggle('active');
     });
     
     // Navigation
-    elements.homeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>Welcome to My Portfolio</h2>
-            <p>Explore my work and journey through this interactive showcase.</p>
-        `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
-    });
+    setupNavigation();
     
-    elements.aboutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>About Me</h2>
-            <div class="about-content">
-                <div class="profile-image"></div>
-                <div class="about-text">
-                    <p>Hi, I'm <span class="highlight">Soundarrajan</span>!</p>
-                    <p>I'm currently pursuing a BSc in Computer Science at ES Arts and Science College.</p>
-                    <p>I completed my schooling in 2023. In my free time, I enjoy playing games and listening to music.</p>
+    // Modal controls
+    setupModals();
+    
+    // Admin tabs
+    setupAdminTabs();
+    
+    // Scroll effect
+    window.addEventListener('scroll', handleScroll);
+});
+
+// Check if user is authenticated
+async function checkAuthState() {
+    try {
+        currentUser = await account.get();
+        if (currentUser) {
+            isAdmin = true;
+            adminOverlay.style.display = 'flex';
+            document.getElementById('loginBtn').textContent = 'Dashboard';
+            loadAdminData();
+        }
+    } catch (error) {
+        isAdmin = false;
+        adminOverlay.style.display = 'none';
+        document.getElementById('loginBtn').textContent = 'Admin';
+    }
+}
+
+// Load initial data from Appwrite
+async function loadInitialData() {
+    try {
+        // Load profile data
+        const profile = await databases.listDocuments('PortfolioDB', 'profile');
+        if (profile.documents.length > 0) {
+            const data = profile.documents[0];
+            dynamicName.textContent = data.name;
+            
+            // Update other profile elements as needed
+        }
+        
+        // Load journey items
+        const journeyItems = await databases.listDocuments('PortfolioDB', 'journey');
+        displayJourneyItems(journeyItems.documents);
+    } catch (error) {
+        console.error("Error loading initial data:", error);
+    }
+}
+
+// Display journey items
+function displayJourneyItems(items) {
+    const container = document.getElementById('publicPhotos');
+    container.innerHTML = '';
+    
+    items.forEach(item => {
+        const imageUrl = item.imageId ? storage.getFilePreview('uploads', item.imageId) : '';
+        
+        container.innerHTML += `
+            <div class="box" style="background-image: url('${imageUrl}')">
+                <div class="content">
+                    <h3>${item.title}</h3>
+                    <p>${item.description}</p>
+                    ${isAdmin ? `<button class="delete-btn" onclick="deleteJourneyItem('${item.$id}')">Delete</button>` : ''}
                 </div>
             </div>
         `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
     });
+}
+
+// Login function
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
     
-    elements.destinationBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>My Goals</h2>
-            <div class="goals-content">
-                <div class="goal-card">
-                    <h3>Short-term</h3>
-                    <p>Join an IT company and gain hands-on experience</p>
+    try {
+        await account.createEmailSession(email, password);
+        loginModal.style.display = 'none';
+        checkAuthState();
+    } catch (error) {
+        document.getElementById('loginError').textContent = 'Invalid email or password';
+        console.error("Login error:", error);
+    }
+});
+
+// Logout function
+logoutBtn.addEventListener('click', async () => {
+    try {
+        await account.deleteSession('current');
+        isAdmin = false;
+        adminOverlay.style.display = 'none';
+        document.getElementById('loginBtn').textContent = 'Admin';
+        window.location.reload();
+    } catch (error) {
+        console.error("Logout error:", error);
+    }
+});
+
+// Admin Dashboard Functions
+async function loadAdminData() {
+    if (!isAdmin) return;
+    
+    try {
+        // Load profile data
+        const profile = await databases.listDocuments('PortfolioDB', 'profile');
+        if (profile.documents.length > 0) {
+            const data = profile.documents[0];
+            document.getElementById('profileName').value = data.name || '';
+            document.getElementById('profileAbout').value = data.about || '';
+            document.getElementById('profileGoals').value = data.goals || '';
+        }
+        
+        // Load projects
+        const projects = await databases.listDocuments('PortfolioDB', 'projects');
+        displayAdminList('projectsList', projects.documents, 'title');
+        
+        // Load journey items
+        const journeyItems = await databases.listDocuments('PortfolioDB', 'journey');
+        displayAdminList('journeyList', journeyItems.documents, 'title');
+        
+        // Load blogs
+        const blogs = await databases.listDocuments('PortfolioDB', 'blogs');
+        displayAdminList('blogsList', blogs.documents, 'title');
+        
+    } catch (error) {
+        console.error("Error loading admin data:", error);
+    }
+}
+
+function displayAdminList(elementId, items, titleField) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = '';
+    
+    items.forEach(item => {
+        container.innerHTML += `
+            <div class="admin-item">
+                <div>
+                    <h4>${item[titleField]}</h4>
+                    <p>${item.description ? item.description.substring(0, 50) + '...' : ''}</p>
                 </div>
-                <div class="goal-card">
-                    <h3>Long-term</h3>
-                    <p>Start my own business and create positive impact</p>
+                <div class="admin-actions">
+                    <button class="edit-btn" onclick="editItem('${item.$collectionId}', '${item.$id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteItem('${item.$collectionId}', '${item.$id}')">Delete</button>
                 </div>
             </div>
         `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
     });
+}
+
+// Form Submissions
+profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     
-    elements.contactBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = `
-            <h2>Contact Me</h2>
-            <div class="social-links">
-                <a href="https://facebook.com/share/1HENdXtkZx" target="_blank"><i class="fab fa-facebook"></i></a>
-                <a href="mailto:soundarrajan2725@gmail.com"><i class="fas fa-envelope"></i></a>
-                <a href="https://instagram.com/aakash_sr_25" target="_blank"><i class="fab fa-instagram"></i></a>
-                <a href="https://github.com/soundarrajan25" target="_blank"><i class="fab fa-github"></i></a>
-            </div>
-        `;
-        elements.journeySection.style.display = 'none';
-        scrollToContent();
-    });
+    const name = document.getElementById('profileName').value;
+    const about = document.getElementById('profileAbout').value;
+    const goals = document.getElementById('profileGoals').value;
+    const imageFile = document.getElementById('profileImage').files[0];
     
-    elements.journeyBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        elements.contentSection.innerHTML = '';
-        elements.journeySection.style.display = 'block';
-        scrollToContent();
-    });
-    
-    // Quality Slider
-    elements.qualitySlider.addEventListener('input', () => {
-        elements.qualityValue.textContent = elements.qualitySlider.value;
-    });
-    
-    // File Selection
-    elements.photoUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    try {
+        // Check if profile exists
+        const existing = await databases.listDocuments('PortfolioDB', 'profile');
+        let imageId = null;
         
-        // Validate file type
-        if (!file.type.match('image.*')) {
-            showStatus('Please select an image file (JPEG, PNG)', 'error', elements.uploadStatus);
-            elements.uploadSubmitBtn.disabled = true;
-            return;
+        if (imageFile) {
+            // Upload new image
+            const upload = await storage.createFile('uploads', ID.unique(), imageFile);
+            imageId = upload.$id;
         }
         
-        // Validate file size (max 2MB before compression)
-        if (file.size > 2 * 1024 * 1024) {
-            showStatus('Image must be smaller than 2MB before compression', 'error', elements.uploadStatus);
-            elements.uploadSubmitBtn.disabled = true;
-            return;
-        }
-        
-        // Show file info
-        elements.fileInfo.innerHTML = `
-            <p>Selected: ${file.name}</p>
-            <p>Original size: ${(file.size / 1024).toFixed(2)} KB</p>
-        `;
-        elements.uploadSubmitBtn.disabled = false;
-    });
-    
-    // Login Form
-    elements.loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = elements.loginEmail.value.trim();
-        const password = elements.loginPassword.value.trim();
-        
-        try {
-            toggleButtonLoading(elements.loginSubmitBtn, true);
-            showStatus('Logging in...', 'info', elements.loginStatus);
-            
-            await auth.signInWithEmailAndPassword(email, password);
-            
-            showStatus('Login successful!', 'success', elements.loginStatus);
-            setTimeout(() => {
-                elements.loginModal.style.display = 'none';
-                elements.loginForm.reset();
-            }, 1500);
-        } catch (error) {
-            console.error('Login error:', error);
-            showStatus(getAuthErrorMessage(error.code), 'error', elements.loginStatus);
-        } finally {
-            toggleButtonLoading(elements.loginSubmitBtn, false);
-        }
-    });
-    
-    // Upload Form
-    elements.uploadForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (!currentUser) {
-            showStatus('Please login first', 'error', elements.uploadStatus);
-            return;
-        }
-
-        const file = elements.photoUpload.files[0];
-        const description = elements.photoDescription.value.trim();
-        const quality = parseInt(elements.qualitySlider.value) / 100;
-
-        if (!file || !description) {
-            showStatus('Please select a file and enter a description', 'error', elements.uploadStatus);
-            return;
-        }
-
-        try {
-            // Disable form during upload
-            toggleButtonLoading(elements.uploadSubmitBtn, true);
-            elements.photoUpload.disabled = true;
-            elements.photoDescription.disabled = true;
-            elements.qualitySlider.disabled = true;
-            
-            showStatus('Compressing image...', 'info', elements.uploadStatus);
-            elements.progressBar.style.width = '0%';
-
-            // Step 1: Compress the image
-            const compressedFile = await compressImage(file, quality);
-            
-            // Validate compressed size
-            if (compressedFile.size > 500 * 1024) { // 500KB max
-                showStatus('Compressed image is too large. Try lower quality.', 'error', elements.uploadStatus);
-                toggleButtonLoading(elements.uploadSubmitBtn, false);
-                return;
-            }
-
-            showStatus('Uploading to Firebase...', 'info', elements.uploadStatus);
-            
-            // Step 2: Upload to Firebase Storage
-            const timestamp = Date.now();
-            const fileExt = file.name.split('.').pop().toLowerCase();
-            const fileName = `photo_${timestamp}.${fileExt}`;
-            const storageRef = storage.ref(`journey/${currentUser.uid}/${fileName}`);
-            
-            // Upload with metadata
-            const uploadTask = storageRef.put(compressedFile, {
-                customMetadata: {
-                    description: description,
-                    originalName: file.name,
-                    compressedSize: compressedFile.size.toString(),
-                    quality: elements.qualitySlider.value
-                }
-            });
-
-            // Progress tracking
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    elements.progressBar.style.width = `${progress}%`;
-                },
-                (error) => {
-                    console.error("Upload error:", error);
-                    showStatus(`Upload failed: ${error.message}`, 'error', elements.uploadStatus);
-                    toggleButtonLoading(elements.uploadSubmitBtn, false);
-                },
-                async () => {
-                    // Upload complete
-                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                    showStatus("Upload successful!", "success", elements.uploadStatus);
-                    
-                    // Add to photos array
-                    photos.unshift({
-                        url: downloadURL,
-                        description: description,
-                        path: uploadTask.snapshot.ref.fullPath
-                    });
-                    
-                    // Update gallery
-                    displayPhotos();
-                    
-                    // Reset form
-                    setTimeout(() => {
-                        elements.uploadForm.reset();
-                        elements.uploadSection.style.display = 'none';
-                        elements.progressBar.style.width = '0%';
-                        elements.fileInfo.innerHTML = '';
-                        toggleButtonLoading(elements.uploadSubmitBtn, false);
-                    }, 1500);
-                }
+        if (existing.documents.length > 0) {
+            // Update existing profile
+            await databases.updateDocument(
+                'PortfolioDB',
+                'profile',
+                existing.documents[0].$id,
+                { name, about, goals, ...(imageId && { imageId }) }
             );
-        } catch (error) {
-            console.error("Error:", error);
-            showStatus(`Error: ${error.message}`, 'error', elements.uploadStatus);
-            toggleButtonLoading(elements.uploadSubmitBtn, false);
+        } else {
+            // Create new profile
+            await databases.createDocument(
+                'PortfolioDB',
+                'profile',
+                ID.unique(),
+                { name, about, goals, ...(imageId && { imageId }) }
+            );
         }
-    });
-    
-    // Logout
-    elements.logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        auth.signOut();
-        showStatus('Logged out successfully', 'success');
-    });
-    
-    // Parallax effect
-    window.addEventListener('scroll', () => {
-        const value = window.scrollY;
-        elements.text.style.top = `${50 + value * -0.1}%`;
-        elements.bird1.style.top = `${value * -0.5}px`;
-        elements.bird1.style.left = `${value * -1}px`;
-        elements.bird2.style.top = `${value * -0.5}px`;
-        elements.bird2.style.left = `${value * 1}px`;
-        elements.header.style.background = value > 100 ? 'rgba(255,255,255,0.9)' : 'transparent';
-    });
-}
-
-// Image Compression
-function compressImage(file, quality) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
         
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Calculate new dimensions (max 1200px)
-                let width = img.width;
-                let height = img.height;
-                const MAX_DIMENSION = 1200;
-                
-                if (width > height) {
-                    if (width > MAX_DIMENSION) {
-                        height *= MAX_DIMENSION / width;
-                        width = MAX_DIMENSION;
-                    }
-                } else {
-                    if (height > MAX_DIMENSION) {
-                        width *= MAX_DIMENSION / height;
-                        height = MAX_DIMENSION;
-                    }
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Convert to JPEG with specified quality
-                canvas.toBlob((blob) => {
-                    resolve(new File([blob], file.name, {
-                        type: 'image/jpeg',
-                        lastModified: Date.now()
-                    }));
-                }, 'image/jpeg', quality);
-            };
-        };
-    });
-}
+        showSuccess('Profile updated successfully!');
+        loadInitialData(); // Refresh frontend
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        showError('Failed to update profile');
+    }
+});
 
-// Display Photos in Gallery
-function displayPhotos() {
-    if (photos.length === 0) {
-        elements.publicPhotos.innerHTML = '<p class="no-photos">No photos yet. Upload some to start your journey!</p>';
+journeyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const title = document.getElementById('journeyTitle').value;
+    const description = document.getElementById('journeyDesc').value;
+    const imageFile = document.getElementById('journeyImage').files[0];
+    
+    if (!imageFile) {
+        showError('Please select an image');
         return;
     }
     
-    elements.publicPhotos.innerHTML = '';
-    
-    photos.forEach(photo => {
-        const photoElement = document.createElement('div');
-        photoElement.className = 'photo-box';
-        photoElement.innerHTML = `
-            <div class="photo-image" style="background-image: url('${photo.url}')"></div>
-            <div class="photo-info">
-                <p>${photo.description}</p>
-                <button class="delete-btn" data-path="${photo.path}">Delete</button>
-            </div>
-        `;
-        elements.publicPhotos.appendChild(photoElement);
+    try {
+        // Upload image
+        const upload = await storage.createFile('uploads', ID.unique(), imageFile);
         
-        // Add delete handler
-        photoElement.querySelector('.delete-btn').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (confirm('Delete this photo permanently?')) {
-                try {
-                    // Delete from storage
-                    await storage.ref(photo.path).delete();
-                    
-                    // Remove from photos array
-                    photos = photos.filter(p => p.path !== photo.path);
-                    
-                    // Update display
-                    displayPhotos();
-                    showStatus('Photo deleted successfully', 'success');
-                } catch (error) {
-                    console.error('Delete error:', error);
-                    showStatus('Failed to delete photo', 'error');
-                }
-            }
+        // Create journey item
+        await databases.createDocument(
+            'PortfolioDB',
+            'journey',
+            ID.unique(),
+            { title, description, imageId: upload.$id }
+        );
+        
+        showSuccess('Journey item added!');
+        journeyForm.reset();
+        loadAdminData(); // Refresh admin list
+        loadInitialData(); // Refresh frontend
+    } catch (error) {
+        console.error("Error adding journey item:", error);
+        showError('Failed to add journey item');
+    }
+});
+
+// Delete functions
+async function deleteItem(collection, id) {
+    if (!confirm('Are you sure you want to delete this item?')) return;
+    
+    try {
+        await databases.deleteDocument('PortfolioDB', collection, id);
+        showSuccess('Item deleted');
+        loadAdminData(); // Refresh lists
+        if (collection === 'journey') {
+            loadInitialData(); // Refresh frontend journey
+        }
+    } catch (error) {
+        console.error("Error deleting item:", error);
+        showError('Failed to delete item');
+    }
+}
+
+async function deleteJourneyItem(id) {
+    await deleteItem('journey', id);
+}
+
+// Helper functions
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    
+    const forms = document.querySelectorAll('.tab-content.active form');
+    if (forms.length > 0) {
+        forms[0].appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+    }
+}
+
+function showSuccess(message) {
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message';
+    successDiv.textContent = message;
+    
+    const forms = document.querySelectorAll('.tab-content.active form');
+    if (forms.length > 0) {
+        forms[0].appendChild(successDiv);
+        setTimeout(() => successDiv.remove(), 3000);
+    }
+}
+
+// Setup functions
+function setupNavigation() {
+    homeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        loadSection('home');
+    });
+    
+    aboutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        loadSection('about');
+    });
+    
+    destinationBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        loadSection('goals');
+    });
+    
+    contactBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        loadSection('contact');
+    });
+    
+    journeyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('journeySection').style.display = 'block';
+        contentSection.innerHTML = '';
+        window.scrollTo({
+            top: document.getElementById('journeySection').offsetTop - 100,
+            behavior: 'smooth'
+        });
+    });
+    
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (isAdmin) {
+            adminModal.style.display = 'block';
+        } else {
+            loginModal.style.display = 'block';
+        }
+    });
+}
+
+function setupModals() {
+    // Close modals when clicking X
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            loginModal.style.display = 'none';
+            adminModal.style.display = 'none';
+        });
+    });
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target === loginModal) loginModal.style.display = 'none';
+        if (e.target === adminModal) adminModal.style.display = 'none';
+    });
+}
+
+function setupAdminTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            tab.classList.add('active');
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const tabId = tab.getAttribute('data-tab') + 'Tab';
+            document.getElementById(tabId).classList.add('active');
         });
     });
 }
 
-// Helper Functions
-function toggleButtonLoading(button, loading) {
-    const btnText = button.querySelector('.btn-text');
-    const spinner = button.querySelector('.spinner');
-    
-    button.disabled = loading;
-    btnText.style.display = loading ? 'none' : 'block';
-    spinner.style.display = loading ? 'block' : 'none';
-}
-
-function showStatus(message, type, element = null) {
-    if (!element) {
-        // Create temporary status message
-        const status = document.createElement('div');
-        status.className = `status-${type}`;
-        status.textContent = message;
-        status.style.position = 'fixed';
-        status.style.bottom = '20px';
-        status.style.left = '50%';
-        status.style.transform = 'translateX(-50%)';
-        status.style.padding = '10px 20px';
-        status.style.borderRadius = '5px';
-        status.style.zIndex = '3000';
-        document.body.appendChild(status);
-        
-        setTimeout(() => {
-            status.style.opacity = '0';
-            setTimeout(() => status.remove(), 300);
-        }, 3000);
-        return;
-    }
-    
-    element.textContent = message;
-    element.className = `status-${type}`;
-}
-
-function scrollToContent() {
-    elements.contentSection.scrollIntoView({ behavior: 'smooth' });
-}
-
-function getAuthErrorMessage(code) {
-    switch(code) {
-        case 'auth/invalid-email': return 'Invalid email format';
-        case 'auth/user-disabled': return 'Account disabled';
-        case 'auth/user-not-found': return 'Account not found';
-        case 'auth/wrong-password': return 'Incorrect password';
-        default: return 'Login failed. Please try again.';
-    }
-}
-
-// Initialize Auth State
-auth.onAuthStateChanged(user => {
-    currentUser = user;
-    if (user) {
-        // User is signed in
-        elements.loginBtn.style.display = 'none';
-        elements.logoutBtn.style.display = 'block';
-        elements.uploadPhotoBtn.style.display = 'block';
-        
-        // Load existing photos
-        loadPhotos();
-    } else {
-        // User is signed out
-        elements.loginBtn.style.display = 'block';
-        elements.logoutBtn.style.display = 'none';
-        elements.uploadPhotoBtn.style.display = 'none';
-        photos = [];
-        displayPhotos();
-    }
-});
-
-// Load Photos from Storage
-async function loadPhotos() {
-    if (!currentUser) return;
+async function loadSection(section) {
+    document.getElementById('journeySection').style.display = 'none';
     
     try {
-        const storageRef = storage.ref(`journey/${currentUser.uid}`);
-        const result = await storageRef.listAll();
+        const profile = await databases.listDocuments('PortfolioDB', 'profile');
+        const data = profile.documents[0] || {};
         
-        photos = await Promise.all(result.items.map(async (itemRef) => {
-            const url = await itemRef.getDownloadURL();
-            const metadata = await itemRef.getMetadata();
-            return {
-                url,
-                description: metadata.customMetadata?.description || "My journey photo",
-                path: itemRef.fullPath
-            };
-        }));
+        switch (section) {
+            case 'home':
+                contentSection.innerHTML = `
+                    <h2>Welcome to My Portfolio</h2>
+                    <p>This is my professional portfolio showcasing my work and journey.</p>
+                `;
+                break;
+                
+            case 'about':
+                contentSection.innerHTML = `
+                    <h2>About Me</h2>
+                    <div class="circular" style="background-image: url('${data.imageId ? storage.getFilePreview('uploads', data.imageId) : ''}')"></div>
+                    <p>Hi, I'm <span class="highlight">${data.name || 'Soundarrajan'}</span>!</p>
+                    <p>${data.about || 'I am a passionate developer.'}</p>
+                `;
+                break;
+                
+            case 'goals':
+                contentSection.innerHTML = `
+                    <h2>My Goals</h2>
+                    <p>${data.goals || 'My professional and personal goals.'}</p>
+                `;
+                break;
+                
+            case 'contact':
+                contentSection.innerHTML = `
+                    <h2>Contact Me</h2>
+                    <div class="social-links">
+                        <!-- Your existing social links -->
+                    </div>
+                `;
+                break;
+        }
         
-        displayPhotos();
+        window.scrollTo({
+            top: contentSection.offsetTop - 100,
+            behavior: 'smooth'
+        });
     } catch (error) {
-        console.error("Error loading photos:", error);
-        showStatus("Failed to load photos", "error");
+        console.error("Error loading section:", error);
     }
 }
 
-// Initialize App
-function initApp() {
-    initEventListeners();
-    elements.homeBtn.click(); // Load home content by default
+function handleScroll() {
+    let value = window.scrollY;
+    text.style.top = 50 + value * -.1 + '%';
+    bird2.style.top = value * -1.5 + 'px';
+    bird2.style.left = value * 2 + 'px';
+    bird1.style.top = value * -1.5 + 'px';
+    bird1.style.left = value * -5 + 'px';
+    rocks.style.top = value * -.12 + 'px';
+    forest.style.top = value * .25 + 'px';
+    
+    // Header effect
+    if (value > 100) {
+        header.classList.add('scrolled');
+    } else {
+        header.classList.remove('scrolled');
+    }
 }
-
-// Start the app
-document.addEventListener('DOMContentLoaded', initApp);
