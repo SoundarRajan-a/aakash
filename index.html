@@ -3,19 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AAKASH SR Portfolio</title>
+    <title>AAKASH SR | Portfolio</title>
+    <link rel="stylesheet" href="./style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <!-- Appwrite SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@10.0.0"></script>
 </head>
 <body>
+    <!-- Admin Overlay (Visible when logged in) -->
+    <div id="adminOverlay" class="admin-overlay">
+        <span>Admin Mode</span>
+        <button id="logoutBtn">Logout</button>
+    </div>
+
     <header id="header">
         <a href="#" class="logo">AAKASH SR</a>
         <div class="menu-toggle" id="menuToggle">
-            <i class="fas fa-bars"></i>
+            <span>Menu</span>
         </div>
         <ul id="navLinks">
             <li><a href="#" id="homeBtn" class="active">Home</a></li>
@@ -23,13 +27,12 @@
             <li><a href="#" id="destinationBtn">Goals</a></li>
             <li><a href="#" id="contactBtn">Contact</a></li>
             <li><a href="#" id="journeyBtn">Journey</a></li>
-            <li><a href="#" id="loginBtn">Login</a></li>
-            <li><a href="#" id="logoutBtn" style="display:none;">Logout</a></li>
+            <li><a href="#" id="loginBtn">Admin</a></li>
         </ul>
     </header>
 
     <section class="parallax-section">
-        <h2 id="text"><span>Welcome this is</span><br>Soundarrajan</h2>
+        <h2 id="text"><span>Welcome this is</span><br><span id="dynamicName">Soundarrajan</span></h2>
         <img src="https://user-images.githubusercontent.com/65358991/170092504-132fa547-5ced-40e5-ab64-ded61518fac2.png" id="bird1">
         <img src="https://user-images.githubusercontent.com/65358991/170092542-9747edcc-fb51-4e21-aaf5-a61119393618.png" id="bird2">
         <img src="https://user-images.githubusercontent.com/65358991/170092559-883fe071-eb4f-4610-8c8b-a037d061c617.png" id="forest">
@@ -37,76 +40,90 @@
         <img src="https://user-images.githubusercontent.com/65358991/170092616-5a70c4af-2eed-496f-bde9-b5fcc7142a31.png" id="water">
     </section>
 
-    <div class="content-section" id="contentSection">
-        <h2>Welcome to My Portfolio</h2>
-        <p>Explore my work and journey through this interactive showcase.</p>
+    <div class="sec" id="contentSection">
+        <!-- Dynamic content loaded here -->
     </div>
 
-    <!-- Login Modal -->
+    <!-- Admin Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Admin Login</h2>
-            <div id="loginStatus"></div>
             <form id="loginForm">
-                <div class="form-group">
-                    <input type="email" id="loginEmail" placeholder="Your Email" required>
-                </div>
-                <div class="form-group">
-                    <input type="password" id="loginPassword" placeholder="Password" required>
-                </div>
-                <button type="submit" id="loginSubmitBtn">
-                    <span class="btn-text">Login</span>
-                    <span class="spinner"></span>
-                </button>
+                <input type="email" id="loginEmail" placeholder="Admin Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
             </form>
+            <div id="loginError" class="error-message"></div>
         </div>
     </div>
 
-    <!-- Upload Button -->
-    <button id="uploadPhotoBtn" class="upload-btn" style="display:none;">
-        <i class="fas fa-cloud-upload-alt"></i>
-    </button>
-
-    <!-- Upload Modal -->
-    <div id="uploadSection" class="modal">
-        <div class="modal-content">
-            <span class="close-upload">&times;</span>
-            <h2>Upload to Journey</h2>
-            <div id="uploadStatus"></div>
-            <form id="uploadForm">
-                <div class="form-group">
-                    <label for="photoUpload">Select Image (Max 2MB):</label>
-                    <input type="file" id="photoUpload" accept="image/*" required>
-                    <div id="fileInfo"></div>
-                </div>
-                <div class="form-group">
-                    <label for="photoDescription">Description:</label>
-                    <textarea id="photoDescription" placeholder="Describe this moment..." required></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Quality: <span id="qualityValue">70</span>%</label>
-                    <input type="range" id="qualitySlider" min="30" max="90" value="70">
-                </div>
-                <button type="submit" id="uploadSubmitBtn">
-                    <span class="btn-text">Upload</span>
-                    <span class="spinner"></span>
-                </button>
-                <div id="uploadProgress">
-                    <div id="progressBar"></div>
-                </div>
-            </form>
+    <!-- Admin Dashboard Modal -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content admin-panel">
+            <span class="close">&times;</span>
+            <h2>Admin Dashboard</h2>
+            
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="profile">Profile</button>
+                <button class="tab-btn" data-tab="projects">Projects</button>
+                <button class="tab-btn" data-tab="journey">Journey</button>
+                <button class="tab-btn" data-tab="blogs">Blogs</button>
+            </div>
+            
+            <div id="profileTab" class="tab-content active">
+                <h3>Edit Profile</h3>
+                <form id="profileForm">
+                    <input type="text" id="profileName" placeholder="Your Name" required>
+                    <textarea id="profileAbout" placeholder="About you" required></textarea>
+                    <textarea id="profileGoals" placeholder="Your goals" required></textarea>
+                    <input type="file" id="profileImage" accept="image/*">
+                    <button type="submit">Update Profile</button>
+                </form>
+            </div>
+            
+            <div id="projectsTab" class="tab-content">
+                <h3>Manage Projects</h3>
+                <form id="projectForm">
+                    <input type="text" id="projectTitle" placeholder="Project Title" required>
+                    <textarea id="projectDesc" placeholder="Description" required></textarea>
+                    <input type="text" id="projectLink" placeholder="Project URL">
+                    <input type="file" id="projectImage" accept="image/*">
+                    <button type="submit">Add Project</button>
+                </form>
+                <div id="projectsList" class="admin-list"></div>
+            </div>
+            
+            <div id="journeyTab" class="tab-content">
+                <h3>Manage Journey</h3>
+                <form id="journeyForm">
+                    <input type="text" id="journeyTitle" placeholder="Title" required>
+                    <textarea id="journeyDesc" placeholder="Description" required></textarea>
+                    <input type="file" id="journeyImage" accept="image/*" required>
+                    <button type="submit">Add to Journey</button>
+                </form>
+                <div id="journeyList" class="admin-list"></div>
+            </div>
+            
+            <div id="blogsTab" class="tab-content">
+                <h3>Manage Blogs</h3>
+                <form id="blogForm">
+                    <input type="text" id="blogTitle" placeholder="Blog Title" required>
+                    <textarea id="blogContent" placeholder="Content" required></textarea>
+                    <input type="file" id="blogImage" accept="image/*">
+                    <button type="submit">Publish Blog</button>
+                </form>
+                <div id="blogsList" class="admin-list"></div>
+            </div>
         </div>
     </div>
 
     <!-- Journey Section -->
-    <div class="journey-section" id="journeySection" style="display:none;">
+    <div class="journey-section" id="journeySection">
         <h2>My Journey</h2>
-        <div class="photos-container" id="publicPhotos">
-            <p class="no-photos">No photos yet. Upload some to start your journey!</p>
-        </div>
+        <div class="container" id="publicPhotos"></div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="./script.js"></script>
 </body>
 </html>
