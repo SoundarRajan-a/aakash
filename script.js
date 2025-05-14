@@ -1,479 +1,505 @@
-// Appwrite Client Setup
-const client = new Client()
-    .setEndpoint('https://cloud.appwrite.io/v1') // Your Appwrite Endpoint
-    .setProject('YOUR_PROJECT_ID'); // Your Project ID
+// Appwrite Configuration
+const appwrite = new Appwrite();
 
-const account = new Account(client);
-const databases = new Databases(client);
-const storage = new Storage(client);
+// Initialize Appwrite client
+appwrite
+    .setEndpoint('https://nyc.cloud.appwrite.io/v1') // Your Appwrite endpoint
+    .setProject('6824e979003178b7222f'); // Your project ID
 
 // DOM Elements
-const text = document.getElementById('text');
-const bird1 = document.getElementById('bird1');
-const bird2 = document.getElementById('bird2');
-const rocks = document.getElementById('rocks');
-const forest = document.getElementById('forest');
-const water = document.getElementById('water');
-const header = document.getElementById('header');
-const contentSection = document.getElementById('contentSection');
-const dynamicName = document.getElementById('dynamicName');
-
-// Buttons
-const homeBtn = document.getElementById('homeBtn');
-const aboutBtn = document.getElementById('aboutBtn');
-const destinationBtn = document.getElementById('destinationBtn');
-const contactBtn = document.getElementById('contactBtn');
-const journeyBtn = document.getElementById('journeyBtn');
-const loginBtn = document.getElementById('loginBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-
-// Admin Elements
-const adminOverlay = document.getElementById('adminOverlay');
-const loginModal = document.getElementById('loginModal');
-const adminModal = document.getElementById('adminModal');
-const closeButtons = document.querySelectorAll('.close');
-
-// Forms
-const loginForm = document.getElementById('loginForm');
-const profileForm = document.getElementById('profileForm');
-const projectForm = document.getElementById('projectForm');
-const journeyForm = document.getElementById('journeyForm');
-const blogForm = document.getElementById('blogForm');
-
-// State
-let isAdmin = false;
-let currentUser = null;
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuthState();
-    loadInitialData();
+const elements = {
+    // Header/Navigation
+    header: document.getElementById('header'),
+    menuToggle: document.getElementById('menuToggle'),
+    navLinks: document.getElementById('navLinks'),
     
-    // Menu Toggle
-    document.getElementById('menuToggle').addEventListener('click', function() {
-        document.getElementById('navLinks').classList.toggle('active');
+    // Sections
+    aboutContent: document.getElementById('aboutContent'),
+    skillsContent: document.getElementById('skillsContent'),
+    projectsContent: document.getElementById('projectsContent'),
+    galleryContent: document.getElementById('galleryContent'),
+    experiencesContent: document.getElementById('experiencesContent'),
+    educationContent: document.getElementById('educationContent'),
+    blogContent: document.getElementById('blogContent'),
+    
+    // Admin Dashboard
+    adminDashboard: document.getElementById('adminDashboard'),
+    adminAvatar: document.getElementById('adminAvatar'),
+    adminName: document.getElementById('adminName'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    closeAdminBtn: document.getElementById('closeAdminBtn'),
+    
+    // Login Modal
+    loginModal: document.getElementById('loginModal'),
+    loginForm: document.getElementById('loginForm'),
+    
+    // Other Modals
+    skillModal: document.getElementById('skillModal'),
+    projectModal: document.getElementById('projectModal'),
+    photoModal: document.getElementById('photoModal'),
+    experienceModal: document.getElementById('experienceModal'),
+    educationModal: document.getElementById('educationModal'),
+    blogModal: document.getElementById('blogModal'),
+    confirmModal: document.getElementById('confirmModal'),
+    
+    // Toast
+    toast: document.getElementById('toast'),
+    toastMessage: document.getElementById('toastMessage'),
+    
+    // Loading Screen
+    loadingScreen: document.getElementById('loadingScreen')
+};
+
+// Global State
+let state = {
+    currentUser: null,
+    isAdmin: false,
+    currentModal: null,
+    confirmCallback: null,
+    dataToDelete: null
+};
+
+// Initialize the application
+function init() {
+    setupEventListeners();
+    checkAuthState();
+    loadContent();
+    
+    // Hide loading screen after 1.5 seconds (simulate loading)
+    setTimeout(() => {
+        elements.loadingScreen.style.display = 'none';
+    }, 1500);
+}
+
+// Set up event listeners
+function setupEventListeners() {
+    // Menu toggle
+    elements.menuToggle.addEventListener('click', toggleMenu);
+    
+    // Login form
+    elements.loginForm.addEventListener('submit', handleLogin);
+    
+    // Logout button
+    if (elements.logoutBtn) {
+        elements.logoutBtn.addEventListener('click', handleLogout);
+    }
+    
+    // Close admin dashboard
+    if (elements.closeAdminBtn) {
+        elements.closeAdminBtn.addEventListener('click', () => {
+            elements.adminDashboard.style.display = 'none';
+        });
+    }
+    
+    // Admin navigation
+    document.querySelectorAll('.admin-nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = link.getAttribute('data-section');
+            showAdminSection(section);
+        });
     });
     
-    // Navigation
-    setupNavigation();
-    
-    // Modal controls
-    setupModals();
-    
-    // Admin tabs
-    setupAdminTabs();
-    
-    // Scroll effect
+    // Scroll event for header
     window.addEventListener('scroll', handleScroll);
-});
+    
+    // Tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            switchTab(tabId);
+        });
+    });
+    
+    // Admin tab buttons
+    document.querySelectorAll('.journey-admin-tabs .tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            switchAdminTab(tabId);
+        });
+    });
+    
+    // Add buttons in admin
+    document.getElementById('addSkillBtn').addEventListener('click', () => showModal('skillModal', 'Add New Skill'));
+    document.getElementById('addProjectBtn').addEventListener('click', () => showModal('projectModal', 'Add New Project'));
+    document.getElementById('addPhotoBtn').addEventListener('click', () => showModal('photoModal', 'Add New Photo'));
+    document.getElementById('addExperienceBtn').addEventListener('click', () => showModal('experienceModal', 'Add New Experience'));
+    document.getElementById('addEducationBtn').addEventListener('click', () => showModal('educationModal', 'Add New Education'));
+    document.getElementById('addBlogBtn').addEventListener('click', () => showModal('blogModal', 'Add New Blog Post'));
+    
+    // Close buttons for all modals
+    document.querySelectorAll('.close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (state.currentModal) {
+                hideModal(state.currentModal);
+            }
+        });
+    });
+    
+    // Confirm modal buttons
+    document.getElementById('confirmCancel').addEventListener('click', () => hideModal('confirmModal'));
+    document.getElementById('confirmOk').addEventListener('click', confirmAction);
+    
+    // Click outside modal to close
+    window.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            hideModal(state.currentModal);
+        }
+    });
+}
 
-// Check if user is authenticated
+// Check authentication state
 async function checkAuthState() {
     try {
-        currentUser = await account.get();
-        if (currentUser) {
-            isAdmin = true;
-            adminOverlay.style.display = 'flex';
-            document.getElementById('loginBtn').textContent = 'Dashboard';
-            loadAdminData();
-        }
-    } catch (error) {
-        isAdmin = false;
-        adminOverlay.style.display = 'none';
-        document.getElementById('loginBtn').textContent = 'Admin';
-    }
-}
-
-// Load initial data from Appwrite
-async function loadInitialData() {
-    try {
-        // Load profile data
-        const profile = await databases.listDocuments('PortfolioDB', 'profile');
-        if (profile.documents.length > 0) {
-            const data = profile.documents[0];
-            dynamicName.textContent = data.name;
-            
-            // Update other profile elements as needed
-        }
+        const user = await appwrite.account.get();
+        state.currentUser = user;
+        state.isAdmin = true;
         
-        // Load journey items
-        const journeyItems = await databases.listDocuments('PortfolioDB', 'journey');
-        displayJourneyItems(journeyItems.documents);
+        // Show admin dashboard button or other admin features
+        document.getElementById('loginBtn').textContent = 'Dashboard';
     } catch (error) {
-        console.error("Error loading initial data:", error);
+        state.currentUser = null;
+        state.isAdmin = false;
     }
 }
 
-// Display journey items
-function displayJourneyItems(items) {
-    const container = document.getElementById('publicPhotos');
-    container.innerHTML = '';
+// Handle login
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
     
-    items.forEach(item => {
-        const imageUrl = item.imageId ? storage.getFilePreview('uploads', item.imageId) : '';
+    try {
+        await appwrite.account.createEmailSession(email, password);
+        state.currentUser = await appwrite.account.get();
+        state.isAdmin = true;
         
-        container.innerHTML += `
-            <div class="box" style="background-image: url('${imageUrl}')">
-                <div class="content">
-                    <h3>${item.title}</h3>
-                    <p>${item.description}</p>
-                    ${isAdmin ? `<button class="delete-btn" onclick="deleteJourneyItem('${item.$id}')">Delete</button>` : ''}
-                </div>
-            </div>
-        `;
+        hideModal('loginModal');
+        showToast('Login successful!');
+        
+        // Update UI
+        document.getElementById('loginBtn').textContent = 'Dashboard';
+    } catch (error) {
+        showToast('Login failed. Please check your credentials.', 'error');
+        console.error('Login error:', error);
+    }
+}
+
+// Handle logout
+async function handleLogout() {
+    try {
+        await appwrite.account.deleteSession('current');
+        state.currentUser = null;
+        state.isAdmin = false;
+        
+        // Hide admin dashboard
+        elements.adminDashboard.style.display = 'none';
+        
+        // Update UI
+        document.getElementById('loginBtn').textContent = 'Admin';
+        showToast('Logged out successfully');
+    } catch (error) {
+        showToast('Logout failed. Please try again.', 'error');
+        console.error('Logout error:', error);
+    }
+}
+
+// Toggle mobile menu
+function toggleMenu() {
+    elements.navLinks.classList.toggle('active');
+}
+
+// Handle scroll for header
+function handleScroll() {
+    if (window.scrollY > 50) {
+        elements.header.classList.add('scrolled');
+    } else {
+        elements.header.classList.remove('scrolled');
+    }
+}
+
+// Show modal
+function showModal(modalId, title = '') {
+    state.currentModal = modalId;
+    const modal = document.getElementById(modalId);
+    
+    if (title && modal.querySelector('h2')) {
+        modal.querySelector('h2').textContent = title;
+    }
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+// Hide modal
+function hideModal(modalId) {
+    if (!modalId) return;
+    
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    state.currentModal = null;
+    
+    // Reset form if exists
+    const form = modal.querySelector('form');
+    if (form) form.reset();
+}
+
+// Show confirmation modal
+function showConfirm(message, callback, data = null) {
+    document.getElementById('confirmModalMessage').textContent = message;
+    state.confirmCallback = callback;
+    state.dataToDelete = data;
+    showModal('confirmModal');
+}
+
+// Confirm action
+function confirmAction() {
+    if (state.confirmCallback) {
+        state.confirmCallback(state.dataToDelete);
+    }
+    hideModal('confirmModal');
+}
+
+// Show toast notification
+function showToast(message, type = 'success') {
+    elements.toastMessage.textContent = message;
+    elements.toast.className = 'toast ' + type;
+    elements.toast.classList.add('show');
+    
+    setTimeout(() => {
+        elements.toast.classList.remove('show');
+    }, 3000);
+}
+
+// Switch tabs
+function switchTab(tabId) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === tabId) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        if (content.id === tabId + 'Tab') {
+            content.classList.add('active');
+        }
     });
 }
 
-// Login function
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    try {
-        await account.createEmailSession(email, password);
-        loginModal.style.display = 'none';
-        checkAuthState();
-    } catch (error) {
-        document.getElementById('loginError').textContent = 'Invalid email or password';
-        console.error("Login error:", error);
-    }
-});
-
-// Logout function
-logoutBtn.addEventListener('click', async () => {
-    try {
-        await account.deleteSession('current');
-        isAdmin = false;
-        adminOverlay.style.display = 'none';
-        document.getElementById('loginBtn').textContent = 'Admin';
-        window.location.reload();
-    } catch (error) {
-        console.error("Logout error:", error);
-    }
-});
-
-// Admin Dashboard Functions
-async function loadAdminData() {
-    if (!isAdmin) return;
-    
-    try {
-        // Load profile data
-        const profile = await databases.listDocuments('PortfolioDB', 'profile');
-        if (profile.documents.length > 0) {
-            const data = profile.documents[0];
-            document.getElementById('profileName').value = data.name || '';
-            document.getElementById('profileAbout').value = data.about || '';
-            document.getElementById('profileGoals').value = data.goals || '';
+// Switch admin tabs
+function switchAdminTab(tabId) {
+    // Update tab buttons
+    document.querySelectorAll('.journey-admin-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === tabId) {
+            btn.classList.add('active');
         }
+    });
+    
+    // Update tab content
+    document.querySelectorAll('.journey-admin-content').forEach(content => {
+        content.classList.remove('active');
+        if (content.id === tabId) {
+            content.classList.add('active');
+        }
+    });
+}
+
+// Show admin section
+function showAdminSection(sectionId) {
+    // Update nav links
+    document.querySelectorAll('.admin-nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-section') === sectionId) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Update sections
+    document.querySelectorAll('.admin-section').forEach(section => {
+        section.classList.remove('active');
+        if (section.id === sectionId + 'Section') {
+            section.classList.add('active');
+        }
+    });
+    
+    // Update section title
+    document.getElementById('adminSectionTitle').textContent = 
+        sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+}
+
+// Load content from Appwrite
+async function loadContent() {
+    try {
+        // Load about content
+        const about = await appwrite.database.getDocument('about', 'current');
+        renderAboutContent(about);
+        
+        // Load skills
+        const skills = await appwrite.database.listDocuments('skills');
+        renderSkills(skills.documents);
         
         // Load projects
-        const projects = await databases.listDocuments('PortfolioDB', 'projects');
-        displayAdminList('projectsList', projects.documents, 'title');
+        const projects = await appwrite.database.listDocuments('projects');
+        renderProjects(projects.documents);
         
-        // Load journey items
-        const journeyItems = await databases.listDocuments('PortfolioDB', 'journey');
-        displayAdminList('journeyList', journeyItems.documents, 'title');
+        // Load gallery photos
+        const photos = await appwrite.database.listDocuments('gallery');
+        renderGallery(photos.documents);
         
-        // Load blogs
-        const blogs = await databases.listDocuments('PortfolioDB', 'blogs');
-        displayAdminList('blogsList', blogs.documents, 'title');
+        // Load experiences
+        const experiences = await appwrite.database.listDocuments('experiences');
+        renderExperiences(experiences.documents);
+        
+        // Load education
+        const education = await appwrite.database.listDocuments('education');
+        renderEducation(education.documents);
+        
+        // Load blog posts
+        const blogs = await appwrite.database.listDocuments('blogs', [], 3);
+        renderBlogs(blogs.documents);
         
     } catch (error) {
-        console.error("Error loading admin data:", error);
+        console.error('Error loading content:', error);
+        showToast('Error loading content. Please try again later.', 'error');
     }
 }
 
-function displayAdminList(elementId, items, titleField) {
-    const container = document.getElementById(elementId);
-    container.innerHTML = '';
-    
-    items.forEach(item => {
-        container.innerHTML += `
-            <div class="admin-item">
-                <div>
-                    <h4>${item[titleField]}</h4>
-                    <p>${item.description ? item.description.substring(0, 50) + '...' : ''}</p>
+// Render about content
+function renderAboutContent(data) {
+    elements.aboutContent.innerHTML = `
+        <div class="about-image">
+            <img src="${appwrite.storage.getFileView('about-image', data.image)}" alt="About Me">
+        </div>
+        <div class="about-text">
+            <h3>${data.title}</h3>
+            <p>${data.content}</p>
+            
+            <div class="about-goals">
+                <h4>My Goals</h4>
+                <div class="goal-item">
+                    <strong>Short-term:</strong> ${data.shortTermGoal}
                 </div>
-                <div class="admin-actions">
-                    <button class="edit-btn" onclick="editItem('${item.$collectionId}', '${item.$id}')">Edit</button>
-                    <button class="delete-btn" onclick="deleteItem('${item.$collectionId}', '${item.$id}')">Delete</button>
+                <div class="goal-item">
+                    <strong>Long-term:</strong> ${data.longTermGoal}
                 </div>
             </div>
-        `;
-    });
+        </div>
+    `;
 }
 
-// Form Submissions
-profileForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const name = document.getElementById('profileName').value;
-    const about = document.getElementById('profileAbout').value;
-    const goals = document.getElementById('profileGoals').value;
-    const imageFile = document.getElementById('profileImage').files[0];
-    
-    try {
-        // Check if profile exists
-        const existing = await databases.listDocuments('PortfolioDB', 'profile');
-        let imageId = null;
-        
-        if (imageFile) {
-            // Upload new image
-            const upload = await storage.createFile('uploads', ID.unique(), imageFile);
-            imageId = upload.$id;
-        }
-        
-        if (existing.documents.length > 0) {
-            // Update existing profile
-            await databases.updateDocument(
-                'PortfolioDB',
-                'profile',
-                existing.documents[0].$id,
-                { name, about, goals, ...(imageId && { imageId }) }
-            );
-        } else {
-            // Create new profile
-            await databases.createDocument(
-                'PortfolioDB',
-                'profile',
-                ID.unique(),
-                { name, about, goals, ...(imageId && { imageId }) }
-            );
-        }
-        
-        showSuccess('Profile updated successfully!');
-        loadInitialData(); // Refresh frontend
-    } catch (error) {
-        console.error("Error updating profile:", error);
-        showError('Failed to update profile');
-    }
-});
-
-journeyForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const title = document.getElementById('journeyTitle').value;
-    const description = document.getElementById('journeyDesc').value;
-    const imageFile = document.getElementById('journeyImage').files[0];
-    
-    if (!imageFile) {
-        showError('Please select an image');
-        return;
-    }
-    
-    try {
-        // Upload image
-        const upload = await storage.createFile('uploads', ID.unique(), imageFile);
-        
-        // Create journey item
-        await databases.createDocument(
-            'PortfolioDB',
-            'journey',
-            ID.unique(),
-            { title, description, imageId: upload.$id }
-        );
-        
-        showSuccess('Journey item added!');
-        journeyForm.reset();
-        loadAdminData(); // Refresh admin list
-        loadInitialData(); // Refresh frontend
-    } catch (error) {
-        console.error("Error adding journey item:", error);
-        showError('Failed to add journey item');
-    }
-});
-
-// Delete functions
-async function deleteItem(collection, id) {
-    if (!confirm('Are you sure you want to delete this item?')) return;
-    
-    try {
-        await databases.deleteDocument('PortfolioDB', collection, id);
-        showSuccess('Item deleted');
-        loadAdminData(); // Refresh lists
-        if (collection === 'journey') {
-            loadInitialData(); // Refresh frontend journey
-        }
-    } catch (error) {
-        console.error("Error deleting item:", error);
-        showError('Failed to delete item');
-    }
+// Render skills
+function renderSkills(skills) {
+    elements.skillsContent.innerHTML = skills.map(skill => `
+        <div class="skill-card">
+            <div class="skill-icon">
+                <i class="${skill.icon}"></i>
+            </div>
+            <h3 class="skill-name">${skill.name}</h3>
+            <div class="skill-level">
+                <div class="skill-level-bar" style="width: ${skill.level}%"></div>
+            </div>
+            <p>${skill.description}</p>
+        </div>
+    `).join('');
 }
 
-async function deleteJourneyItem(id) {
-    await deleteItem('journey', id);
+// Render projects
+function renderProjects(projects) {
+    elements.projectsContent.innerHTML = projects.map(project => `
+        <div class="project-card">
+            <div class="project-image">
+                <img src="${appwrite.storage.getFileView('project-images', project.image)}" alt="${project.title}">
+            </div>
+            <div class="project-content">
+                <h3 class="project-title">${project.title}</h3>
+                <p class="project-description">${project.description}</p>
+                <div class="project-technologies">
+                    ${project.technologies.split(',').map(tech => `
+                        <span class="technology-tag">${tech.trim()}</span>
+                    `).join('')}
+                </div>
+                <div class="project-links">
+                    ${project.link ? `<a href="${project.link}" class="btn-secondary" target="_blank">View Project</a>` : ''}
+                    ${project.github ? `<a href="${project.github}" class="btn-outline" target="_blank">GitHub</a>` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
 
-// Helper functions
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    
-    const forms = document.querySelectorAll('.tab-content.active form');
-    if (forms.length > 0) {
-        forms[0].appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 3000);
-    }
+// Render gallery
+function renderGallery(photos) {
+    elements.galleryContent.innerHTML = photos.map(photo => `
+        <div class="gallery-item">
+            <img src="${appwrite.storage.getFileView('gallery-images', photo.image)}" alt="${photo.title}">
+            <div class="gallery-overlay">
+                <h4>${photo.title}</h4>
+                <p>${photo.description}</p>
+                <small>${new Date(photo.date).toLocaleDateString()} • ${photo.location}</small>
+            </div>
+        </div>
+    `).join('');
 }
 
-function showSuccess(message) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'success-message';
-    successDiv.textContent = message;
-    
-    const forms = document.querySelectorAll('.tab-content.active form');
-    if (forms.length > 0) {
-        forms[0].appendChild(successDiv);
-        setTimeout(() => successDiv.remove(), 3000);
-    }
+// Render experiences
+function renderExperiences(experiences) {
+    elements.experiencesContent.innerHTML = experiences.map((exp, index) => `
+        <div class="timeline-item ${index % 2 === 0 ? 'even' : 'odd'}">
+            <div class="timeline-date">
+                ${new Date(exp.startDate).toLocaleDateString()} - 
+                ${exp.current ? 'Present' : new Date(exp.endDate).toLocaleDateString()}
+            </div>
+            <div class="timeline-content">
+                <h3 class="timeline-title">${exp.title}</h3>
+                <p class="timeline-company">${exp.company} • ${exp.location}</p>
+                <p>${exp.description}</p>
+            </div>
+        </div>
+    `).join('');
 }
 
-// Setup functions
-function setupNavigation() {
-    homeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        loadSection('home');
-    });
-    
-    aboutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        loadSection('about');
-    });
-    
-    destinationBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        loadSection('goals');
-    });
-    
-    contactBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        loadSection('contact');
-    });
-    
-    journeyBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.getElementById('journeySection').style.display = 'block';
-        contentSection.innerHTML = '';
-        window.scrollTo({
-            top: document.getElementById('journeySection').offsetTop - 100,
-            behavior: 'smooth'
-        });
-    });
-    
-    loginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (isAdmin) {
-            adminModal.style.display = 'block';
-        } else {
-            loginModal.style.display = 'block';
-        }
-    });
+// Render education
+function renderEducation(education) {
+    elements.educationContent.innerHTML = education.map((edu, index) => `
+        <div class="timeline-item ${index % 2 === 0 ? 'even' : 'odd'}">
+            <div class="timeline-date">
+                ${new Date(edu.startDate).toLocaleDateString()} - 
+                ${edu.current ? 'Present' : new Date(edu.endDate).toLocaleDateString()}
+            </div>
+            <div class="timeline-content">
+                <h3 class="timeline-title">${edu.degree}</h3>
+                <p class="timeline-company">${edu.institution} • ${edu.field}</p>
+                ${edu.description ? `<p>${edu.description}</p>` : ''}
+            </div>
+        </div>
+    `).join('');
 }
 
-function setupModals() {
-    // Close modals when clicking X
-    closeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            loginModal.style.display = 'none';
-            adminModal.style.display = 'none';
-        });
-    });
-    
-    // Close modals when clicking outside
-    window.addEventListener('click', (e) => {
-        if (e.target === loginModal) loginModal.style.display = 'none';
-        if (e.target === adminModal) adminModal.style.display = 'none';
-    });
+// Render blogs
+function renderBlogs(blogs) {
+    elements.blogContent.innerHTML = blogs.map(blog => `
+        <div class="blog-card">
+            <div class="blog-image">
+                <img src="${appwrite.storage.getFileView('blog-images', blog.image)}" alt="${blog.title}">
+            </div>
+            <div class="blog-content">
+                <div class="blog-meta">
+                    <span>${new Date(blog.publishDate).toLocaleDateString()}</span>
+                    <span>${blog.category}</span>
+                </div>
+                <h3 class="blog-title">${blog.title}</h3>
+                <p class="blog-excerpt">${blog.excerpt}</p>
+                <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    `).join('');
 }
 
-function setupAdminTabs() {
-    const tabs = document.querySelectorAll('.tab-btn');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            // Remove active class from all tabs
-            tabs.forEach(t => t.classList.remove('active'));
-            // Add active class to clicked tab
-            tab.classList.add('active');
-            
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Show selected tab content
-            const tabId = tab.getAttribute('data-tab') + 'Tab';
-            document.getElementById(tabId).classList.add('active');
-        });
-    });
-}
-
-async function loadSection(section) {
-    document.getElementById('journeySection').style.display = 'none';
-    
-    try {
-        const profile = await databases.listDocuments('PortfolioDB', 'profile');
-        const data = profile.documents[0] || {};
-        
-        switch (section) {
-            case 'home':
-                contentSection.innerHTML = `
-                    <h2>Welcome to My Portfolio</h2>
-                    <p>This is my professional portfolio showcasing my work and journey.</p>
-                `;
-                break;
-                
-            case 'about':
-                contentSection.innerHTML = `
-                    <h2>About Me</h2>
-                    <div class="circular" style="background-image: url('${data.imageId ? storage.getFilePreview('uploads', data.imageId) : ''}')"></div>
-                    <p>Hi, I'm <span class="highlight">${data.name || 'Soundarrajan'}</span>!</p>
-                    <p>${data.about || 'I am a passionate developer.'}</p>
-                `;
-                break;
-                
-            case 'goals':
-                contentSection.innerHTML = `
-                    <h2>My Goals</h2>
-                    <p>${data.goals || 'My professional and personal goals.'}</p>
-                `;
-                break;
-                
-            case 'contact':
-                contentSection.innerHTML = `
-                    <h2>Contact Me</h2>
-                    <div class="social-links">
-                        <!-- Your existing social links -->
-                    </div>
-                `;
-                break;
-        }
-        
-        window.scrollTo({
-            top: contentSection.offsetTop - 100,
-            behavior: 'smooth'
-        });
-    } catch (error) {
-        console.error("Error loading section:", error);
-    }
-}
-
-function handleScroll() {
-    let value = window.scrollY;
-    text.style.top = 50 + value * -.1 + '%';
-    bird2.style.top = value * -1.5 + 'px';
-    bird2.style.left = value * 2 + 'px';
-    bird1.style.top = value * -1.5 + 'px';
-    bird1.style.left = value * -5 + 'px';
-    rocks.style.top = value * -.12 + 'px';
-    forest.style.top = value * .25 + 'px';
-    
-    // Header effect
-    if (value > 100) {
-        header.classList.add('scrolled');
-    } else {
-        header.classList.remove('scrolled');
-    }
-}
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', init);
