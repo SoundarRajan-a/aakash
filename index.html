@@ -5,44 +5,198 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AAKASH SR | Portfolio</title>
     <link rel="stylesheet" href="./style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Appwrite SDK -->
     <script src="https://cdn.jsdelivr.net/npm/appwrite@10.0.0"></script>
 </head>
 <body>
-    <!-- Admin Overlay (Visible when logged in) -->
-    <div id="adminOverlay" class="admin-overlay">
-        <span>Admin Mode</span>
-        <button id="logoutBtn">Logout</button>
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loader"></div>
     </div>
 
+    <!-- Header/Navigation -->
     <header id="header">
         <a href="#" class="logo">AAKASH SR</a>
         <div class="menu-toggle" id="menuToggle">
-            <span>Menu</span>
+            <i class="fas fa-bars"></i>
         </div>
         <ul id="navLinks">
             <li><a href="#" id="homeBtn" class="active">Home</a></li>
             <li><a href="#" id="aboutBtn">About</a></li>
-            <li><a href="#" id="destinationBtn">Goals</a></li>
-            <li><a href="#" id="contactBtn">Contact</a></li>
+            <li><a href="#" id="skillsBtn">Skills</a></li>
+            <li><a href="#" id="projectsBtn">Projects</a></li>
             <li><a href="#" id="journeyBtn">Journey</a></li>
+            <li><a href="#" id="blogBtn">Blog</a></li>
+            <li><a href="#" id="contactBtn">Contact</a></li>
             <li><a href="#" id="loginBtn">Admin</a></li>
         </ul>
     </header>
 
-    <section class="parallax-section">
-        <h2 id="text"><span>Welcome this is</span><br><span id="dynamicName">Soundarrajan</span></h2>
-        <img src="https://user-images.githubusercontent.com/65358991/170092504-132fa547-5ced-40e5-ab64-ded61518fac2.png" id="bird1">
-        <img src="https://user-images.githubusercontent.com/65358991/170092542-9747edcc-fb51-4e21-aaf5-a61119393618.png" id="bird2">
-        <img src="https://user-images.githubusercontent.com/65358991/170092559-883fe071-eb4f-4610-8c8b-a037d061c617.png" id="forest">
-        <img src="https://user-images.githubusercontent.com/65358991/170092605-eada6510-d556-45cc-b7fa-9e4d1d258d26.png" id="rocks">
-        <img src="https://user-images.githubusercontent.com/65358991/170092616-5a70c4af-2eed-496f-bde9-b5fcc7142a31.png" id="water">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h2 id="text"><span>Welcome, I'm</span><br>Soundarrajan</h2>
+            <p class="hero-subtitle">Computer Science Student & Aspiring Developer</p>
+            <div class="hero-buttons">
+                <a href="#about" class="btn-primary">Explore More</a>
+                <a href="#contact" class="btn-secondary">Contact Me</a>
+            </div>
+        </div>
+        <div class="hero-images">
+            <img src="./assets/bird1.png" id="bird1" alt="Decorative bird">
+            <img src="./assets/bird2.png" id="bird2" alt="Decorative bird">
+            <img src="./assets/forest.png" id="forest" alt="Forest background">
+            <img src="./assets/rocks.png" id="rocks" alt="Rocks decoration">
+            <img src="./assets/water.png" id="water" alt="Water decoration">
+        </div>
     </section>
 
-    <div class="sec" id="contentSection">
-        <!-- Dynamic content loaded here -->
-    </div>
+    <!-- Main Content Sections -->
+    <main>
+        <!-- About Section -->
+        <section id="about" class="section">
+            <div class="container">
+                <h2 class="section-title">About Me</h2>
+                <div class="about-content" id="aboutContent">
+                    <!-- Dynamically loaded from Appwrite -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Skills Section -->
+        <section id="skills" class="section bg-light">
+            <div class="container">
+                <h2 class="section-title">My Skills</h2>
+                <div class="skills-grid" id="skillsContent">
+                    <!-- Dynamically loaded from Appwrite -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Projects Section -->
+        <section id="projects" class="section">
+            <div class="container">
+                <h2 class="section-title">My Projects</h2>
+                <div class="projects-grid" id="projectsContent">
+                    <!-- Dynamically loaded from Appwrite -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey Section -->
+        <section id="journey" class="section bg-light">
+            <div class="container">
+                <h2 class="section-title">My Journey</h2>
+                <div class="journey-tabs">
+                    <button class="tab-btn active" data-tab="photos">Photos</button>
+                    <button class="tab-btn" data-tab="experiences">Experiences</button>
+                    <button class="tab-btn" data-tab="education">Education</button>
+                </div>
+                <div class="journey-content">
+                    <div id="photosTab" class="tab-content active">
+                        <div class="gallery-grid" id="galleryContent">
+                            <!-- Dynamically loaded from Appwrite -->
+                        </div>
+                    </div>
+                    <div id="experiencesTab" class="tab-content">
+                        <div class="timeline" id="experiencesContent">
+                            <!-- Dynamically loaded from Appwrite -->
+                        </div>
+                    </div>
+                    <div id="educationTab" class="tab-content">
+                        <div class="timeline" id="educationContent">
+                            <!-- Dynamically loaded from Appwrite -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Blog Section -->
+        <section id="blog" class="section">
+            <div class="container">
+                <h2 class="section-title">Latest Blogs</h2>
+                <div class="blog-grid" id="blogContent">
+                    <!-- Dynamically loaded from Appwrite -->
+                </div>
+                <div class="text-center">
+                    <a href="#" class="btn-primary">View All Blogs</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="section bg-light">
+            <div class="container">
+                <h2 class="section-title">Get In Touch</h2>
+                <div class="contact-container">
+                    <div class="contact-info">
+                        <div class="info-item">
+                            <i class="fas fa-envelope"></i>
+                            <span id="contactEmail">soundarrajan2725@gmail.com</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-phone"></i>
+                            <span id="contactPhone">+91 1234567890</span>
+                        </div>
+                        <div class="social-links">
+                            <a href="#" class="social-icon" target="_blank"><i class="fab fa-github"></i></a>
+                            <a href="#" class="social-icon" target="_blank"><i class="fab fa-linkedin"></i></a>
+                            <a href="#" class="social-icon" target="_blank"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <form id="contactForm" class="contact-form">
+                        <div class="form-group">
+                            <input type="text" id="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="subject" placeholder="Subject" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="message" placeholder="Your Message" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <a href="#" class="logo">AAKASH SR</a>
+                    <p>Computer Science Student & Aspiring Developer</p>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#projects">Projects</a></li>
+                        <li><a href="#journey">Journey</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h3>Contact Info</h3>
+                    <p id="footerEmail">soundarrajan2725@gmail.com</p>
+                    <p id="footerLocation">Coimbatore, India</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="currentYear"></span> AAKASH SR. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
 
     <!-- Admin Login Modal -->
     <div id="loginModal" class="modal">
@@ -50,80 +204,543 @@
             <span class="close">&times;</span>
             <h2>Admin Login</h2>
             <form id="loginForm">
-                <input type="email" id="loginEmail" placeholder="Admin Email" required>
-                <input type="password" id="loginPassword" placeholder="Password" required>
-                <button type="submit">Login</button>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
             </form>
-            <div id="loginError" class="error-message"></div>
         </div>
     </div>
 
-    <!-- Admin Dashboard Modal -->
-    <div id="adminModal" class="modal">
-        <div class="modal-content admin-panel">
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="admin-dashboard">
+        <div class="admin-sidebar">
+            <div class="admin-profile">
+                <div class="admin-avatar" id="adminAvatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h3 id="adminName">Admin</h3>
+                <button id="logoutBtn" class="btn-secondary">Logout</button>
+            </div>
+            <nav class="admin-nav">
+                <ul>
+                    <li><a href="#" class="admin-nav-link active" data-section="profile"><i class="fas fa-user"></i> Profile</a></li>
+                    <li><a href="#" class="admin-nav-link" data-section="about"><i class="fas fa-info-circle"></i> About</a></li>
+                    <li><a href="#" class="admin-nav-link" data-section="skills"><i class="fas fa-code"></i> Skills</a></li>
+                    <li><a href="#" class="admin-nav-link" data-section="projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+                    <li><a href="#" class="admin-nav-link" data-section="journey"><i class="fas fa-road"></i> Journey</a></li>
+                    <li><a href="#" class="admin-nav-link" data-section="blog"><i class="fas fa-blog"></i> Blog</a></li>
+                    <li><a href="#" class="admin-nav-link" data-section="contact"><i class="fas fa-envelope"></i> Contact</a></li>
+                    <li><a href="#" class="admin-nav-link" data-section="settings"><i class="fas fa-cog"></i> Settings</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="admin-main">
+            <div class="admin-header">
+                <h2 id="adminSectionTitle">Profile</h2>
+                <button id="closeAdminBtn" class="btn-secondary"><i class="fas fa-times"></i> Close Dashboard</button>
+            </div>
+            <div class="admin-content">
+                <!-- Profile Section -->
+                <div id="profileSection" class="admin-section active">
+                    <form id="profileForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adminFullName">Full Name</label>
+                                <input type="text" id="adminFullName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminTitle">Professional Title</label>
+                                <input type="text" id="adminTitle" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminBio">Short Bio</label>
+                            <textarea id="adminBio" rows="3" required></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adminEmail">Email</label>
+                                <input type="email" id="adminEmail" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminPhone">Phone</label>
+                                <input type="tel" id="adminPhone" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminLocation">Location</label>
+                            <input type="text" id="adminLocation" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminResume">Resume/CV</label>
+                            <input type="file" id="adminResume" accept=".pdf,.doc,.docx">
+                            <a href="#" id="currentResumeLink" target="_blank">View Current Resume</a>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminAvatarUpload">Profile Picture</label>
+                            <input type="file" id="adminAvatarUpload" accept="image/*">
+                            <div class="avatar-preview" id="avatarPreview"></div>
+                        </div>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                    </form>
+                </div>
+
+                <!-- About Section -->
+                <div id="aboutSection" class="admin-section">
+                    <form id="aboutForm">
+                        <div class="form-group">
+                            <label for="aboutContent">About Content</label>
+                            <textarea id="aboutContent" rows="10" class="rich-text"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="aboutImage">About Image</label>
+                            <input type="file" id="aboutImage" accept="image/*">
+                            <div class="image-preview" id="aboutImagePreview"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="shortTermGoal">Short Term Goal</label>
+                                <input type="text" id="shortTermGoal" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="longTermGoal">Long Term Goal</label>
+                                <input type="text" id="longTermGoal" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Save About Info</button>
+                    </form>
+                </div>
+
+                <!-- Skills Section -->
+                <div id="skillsSection" class="admin-section">
+                    <div class="admin-section-header">
+                        <h3>Manage Skills</h3>
+                        <button id="addSkillBtn" class="btn-primary">Add Skill</button>
+                    </div>
+                    <div class="skills-list" id="adminSkillsList">
+                        <!-- Skills will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Projects Section -->
+                <div id="projectsSection" class="admin-section">
+                    <div class="admin-section-header">
+                        <h3>Manage Projects</h3>
+                        <button id="addProjectBtn" class="btn-primary">Add Project</button>
+                    </div>
+                    <div class="projects-list" id="adminProjectsList">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Journey Section -->
+                <div id="journeySection" class="admin-section">
+                    <div class="journey-admin-tabs">
+                        <button class="tab-btn active" data-tab="photosAdmin">Photos</button>
+                        <button class="tab-btn" data-tab="experiencesAdmin">Experiences</button>
+                        <button class="tab-btn" data-tab="educationAdmin">Education</button>
+                    </div>
+                    
+                    <div id="photosAdmin" class="journey-admin-content active">
+                        <div class="admin-section-header">
+                            <h3>Manage Gallery</h3>
+                            <button id="addPhotoBtn" class="btn-primary">Add Photo</button>
+                        </div>
+                        <div class="gallery-admin-grid" id="adminGalleryContent">
+                            <!-- Gallery items will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <div id="experiencesAdmin" class="journey-admin-content">
+                        <div class="admin-section-header">
+                            <h3>Manage Experiences</h3>
+                            <button id="addExperienceBtn" class="btn-primary">Add Experience</button>
+                        </div>
+                        <div class="experiences-admin-list" id="adminExperiencesContent">
+                            <!-- Experiences will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <div id="educationAdmin" class="journey-admin-content">
+                        <div class="admin-section-header">
+                            <h3>Manage Education</h3>
+                            <button id="addEducationBtn" class="btn-primary">Add Education</button>
+                        </div>
+                        <div class="education-admin-list" id="adminEducationContent">
+                            <!-- Education items will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blog Section -->
+                <div id="blogSection" class="admin-section">
+                    <div class="admin-section-header">
+                        <h3>Manage Blog Posts</h3>
+                        <button id="addBlogBtn" class="btn-primary">Add Blog Post</button>
+                    </div>
+                    <div class="blog-admin-list" id="adminBlogContent">
+                        <!-- Blog posts will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Contact Section -->
+                <div id="contactSection" class="admin-section">
+                    <form id="contactInfoForm">
+                        <div class="form-group">
+                            <label for="contactEmailInput">Email</label>
+                            <input type="email" id="contactEmailInput" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactPhoneInput">Phone</label>
+                            <input type="tel" id="contactPhoneInput" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactAddress">Address</label>
+                            <textarea id="contactAddress" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Social Links</label>
+                            <div class="social-inputs">
+                                <div class="social-input-group">
+                                    <i class="fab fa-github"></i>
+                                    <input type="url" id="githubLink" placeholder="GitHub URL">
+                                </div>
+                                <div class="social-input-group">
+                                    <i class="fab fa-linkedin"></i>
+                                    <input type="url" id="linkedinLink" placeholder="LinkedIn URL">
+                                </div>
+                                <div class="social-input-group">
+                                    <i class="fab fa-twitter"></i>
+                                    <input type="url" id="twitterLink" placeholder="Twitter URL">
+                                </div>
+                                <div class="social-input-group">
+                                    <i class="fab fa-instagram"></i>
+                                    <input type="url" id="instagramLink" placeholder="Instagram URL">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Save Contact Info</button>
+                    </form>
+                </div>
+
+                <!-- Settings Section -->
+                <div id="settingsSection" class="admin-section">
+                    <form id="settingsForm">
+                        <div class="form-group">
+                            <label for="websiteTheme">Website Theme</label>
+                            <select id="websiteTheme">
+                                <option value="default">Default</option>
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                                <option value="blue">Blue</option>
+                                <option value="green">Green</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminEmailSettings">Admin Email</label>
+                            <input type="email" id="adminEmailSettings" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="currentPassword">Current Password</label>
+                            <input type="password" id="currentPassword">
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" id="newPassword">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm New Password</label>
+                            <input type="password" id="confirmPassword">
+                        </div>
+                        <button type="submit" class="btn-primary">Save Settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Skill Modal -->
+    <div id="skillModal" class="modal">
+        <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Admin Dashboard</h2>
-            
-            <div class="admin-tabs">
-                <button class="tab-btn active" data-tab="profile">Profile</button>
-                <button class="tab-btn" data-tab="projects">Projects</button>
-                <button class="tab-btn" data-tab="journey">Journey</button>
-                <button class="tab-btn" data-tab="blogs">Blogs</button>
-            </div>
-            
-            <div id="profileTab" class="tab-content active">
-                <h3>Edit Profile</h3>
-                <form id="profileForm">
-                    <input type="text" id="profileName" placeholder="Your Name" required>
-                    <textarea id="profileAbout" placeholder="About you" required></textarea>
-                    <textarea id="profileGoals" placeholder="Your goals" required></textarea>
-                    <input type="file" id="profileImage" accept="image/*">
-                    <button type="submit">Update Profile</button>
-                </form>
-            </div>
-            
-            <div id="projectsTab" class="tab-content">
-                <h3>Manage Projects</h3>
-                <form id="projectForm">
-                    <input type="text" id="projectTitle" placeholder="Project Title" required>
-                    <textarea id="projectDesc" placeholder="Description" required></textarea>
-                    <input type="text" id="projectLink" placeholder="Project URL">
+            <h2 id="skillModalTitle">Add New Skill</h2>
+            <form id="skillForm">
+                <input type="hidden" id="skillId">
+                <div class="form-group">
+                    <label for="skillName">Skill Name</label>
+                    <input type="text" id="skillName" required>
+                </div>
+                <div class="form-group">
+                    <label for="skillLevel">Skill Level (1-100)</label>
+                    <input type="number" id="skillLevel" min="1" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="skillCategory">Category</label>
+                    <select id="skillCategory" required>
+                        <option value="programming">Programming</option>
+                        <option value="design">Design</option>
+                        <option value="tools">Tools</option>
+                        <option value="languages">Languages</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="skillIcon">Icon (Font Awesome class)</label>
+                    <input type="text" id="skillIcon" placeholder="e.g., fab fa-js">
+                </div>
+                <button type="submit" class="btn-primary">Save Skill</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Project Modal -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="projectModalTitle">Add New Project</h2>
+            <form id="projectForm">
+                <input type="hidden" id="projectId">
+                <div class="form-group">
+                    <label for="projectTitle">Project Title</label>
+                    <input type="text" id="projectTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="projectDescription">Description</label>
+                    <textarea id="projectDescription" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="projectTechnologies">Technologies Used (comma separated)</label>
+                    <input type="text" id="projectTechnologies" required>
+                </div>
+                <div class="form-group">
+                    <label for="projectLink">Project URL</label>
+                    <input type="url" id="projectLink">
+                </div>
+                <div class="form-group">
+                    <label for="projectGithub">GitHub URL</label>
+                    <input type="url" id="projectGithub">
+                </div>
+                <div class="form-group">
+                    <label for="projectImage">Project Image</label>
                     <input type="file" id="projectImage" accept="image/*">
-                    <button type="submit">Add Project</button>
-                </form>
-                <div id="projectsList" class="admin-list"></div>
-            </div>
-            
-            <div id="journeyTab" class="tab-content">
-                <h3>Manage Journey</h3>
-                <form id="journeyForm">
-                    <input type="text" id="journeyTitle" placeholder="Title" required>
-                    <textarea id="journeyDesc" placeholder="Description" required></textarea>
-                    <input type="file" id="journeyImage" accept="image/*" required>
-                    <button type="submit">Add to Journey</button>
-                </form>
-                <div id="journeyList" class="admin-list"></div>
-            </div>
-            
-            <div id="blogsTab" class="tab-content">
-                <h3>Manage Blogs</h3>
-                <form id="blogForm">
-                    <input type="text" id="blogTitle" placeholder="Blog Title" required>
-                    <textarea id="blogContent" placeholder="Content" required></textarea>
-                    <input type="file" id="blogImage" accept="image/*">
-                    <button type="submit">Publish Blog</button>
-                </form>
-                <div id="blogsList" class="admin-list"></div>
+                    <div class="image-preview" id="projectImagePreview"></div>
+                </div>
+                <button type="submit" class="btn-primary">Save Project</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Photo Modal -->
+    <div id="photoModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="photoModalTitle">Add New Photo</h2>
+            <form id="photoForm">
+                <input type="hidden" id="photoId">
+                <div class="form-group">
+                    <label for="photoTitle">Title</label>
+                    <input type="text" id="photoTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="photoDescription">Description</label>
+                    <textarea id="photoDescription" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="photoDate">Date</label>
+                    <input type="date" id="photoDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="photoLocation">Location</label>
+                    <input type="text" id="photoLocation">
+                </div>
+                <div class="form-group">
+                    <label for="photoCategory">Category</label>
+                    <select id="photoCategory">
+                        <option value="personal">Personal</option>
+                        <option value="travel">Travel</option>
+                        <option value="education">Education</option>
+                        <option value="work">Work</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="photoFile">Photo</label>
+                    <input type="file" id="photoFile" accept="image/*" required>
+                    <div class="image-preview" id="photoPreview"></div>
+                </div>
+                <button type="submit" class="btn-primary">Save Photo</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Experience Modal -->
+    <div id="experienceModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="experienceModalTitle">Add New Experience</h2>
+            <form id="experienceForm">
+                <input type="hidden" id="experienceId">
+                <div class="form-group">
+                    <label for="experienceTitle">Job Title</label>
+                    <input type="text" id="experienceTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="experienceCompany">Company</label>
+                    <input type="text" id="experienceCompany" required>
+                </div>
+                <div class="form-group">
+                    <label for="experienceLocation">Location</label>
+                    <input type="text" id="experienceLocation">
+                </div>
+                <div class="form-group">
+                    <label for="experienceStartDate">Start Date</label>
+                    <input type="date" id="experienceStartDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="experienceEndDate">End Date</label>
+                    <input type="date" id="experienceEndDate">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="experienceCurrent"> Currently working here
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="experienceDescription">Description</label>
+                    <textarea id="experienceDescription" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Save Experience</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Education Modal -->
+    <div id="educationModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="educationModalTitle">Add New Education</h2>
+            <form id="educationForm">
+                <input type="hidden" id="educationId">
+                <div class="form-group">
+                    <label for="educationInstitution">Institution</label>
+                    <input type="text" id="educationInstitution" required>
+                </div>
+                <div class="form-group">
+                    <label for="educationDegree">Degree/Certificate</label>
+                    <input type="text" id="educationDegree" required>
+                </div>
+                <div class="form-group">
+                    <label for="educationField">Field of Study</label>
+                    <input type="text" id="educationField" required>
+                </div>
+                <div class="form-group">
+                    <label for="educationStartDate">Start Date</label>
+                    <input type="date" id="educationStartDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="educationEndDate">End Date</label>
+                    <input type="date" id="educationEndDate">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="educationCurrent"> Currently studying here
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="educationDescription">Description</label>
+                    <textarea id="educationDescription" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="educationImage">Institution Logo/Image</label>
+                    <input type="file" id="educationImage" accept="image/*">
+                    <div class="image-preview" id="educationImagePreview"></div>
+                </div>
+                <button type="submit" class="btn-primary">Save Education</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Blog Modal -->
+    <div id="blogModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="blogModalTitle">Add New Blog Post</h2>
+            <form id="blogForm">
+                <input type="hidden" id="blogId">
+                <div class="form-group">
+                    <label for="blogTitle">Title</label>
+                    <input type="text" id="blogTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="blogSlug">URL Slug</label>
+                    <input type="text" id="blogSlug" required>
+                </div>
+                <div class="form-group">
+                    <label for="blogExcerpt">Excerpt</label>
+                    <textarea id="blogExcerpt" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="blogContent">Content</label>
+                    <textarea id="blogContent" rows="10" class="rich-text" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="blogCategory">Category</label>
+                    <select id="blogCategory" required>
+                        <option value="technology">Technology</option>
+                        <option value="programming">Programming</option>
+                        <option value="personal">Personal</option>
+                        <option value="education">Education</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="blogTags">Tags (comma separated)</label>
+                    <input type="text" id="blogTags">
+                </div>
+                <div class="form-group">
+                    <label for="blogFeaturedImage">Featured Image</label>
+                    <input type="file" id="blogFeaturedImage" accept="image/*">
+                    <div class="image-preview" id="blogImagePreview"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="blogPublishDate">Publish Date</label>
+                        <input type="date" id="blogPublishDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="blogStatus">Status</label>
+                        <select id="blogStatus" required>
+                            <option value="published">Published</option>
+                            <option value="draft">Draft</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Save Blog Post</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content small">
+            <h2 id="confirmModalTitle">Confirm Action</h2>
+            <p id="confirmModalMessage">Are you sure you want to perform this action?</p>
+            <div class="modal-buttons">
+                <button id="confirmCancel" class="btn-secondary">Cancel</button>
+                <button id="confirmOk" class="btn-primary">Confirm</button>
             </div>
         </div>
     </div>
 
-    <!-- Journey Section -->
-    <div class="journey-section" id="journeySection">
-        <h2>My Journey</h2>
-        <div class="container" id="publicPhotos"></div>
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <span id="toastMessage">This is a notification message</span>
+        </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="./appwrite-config.js"></script>
     <script src="./script.js"></script>
 </body>
 </html>
